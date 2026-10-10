@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="sq-build" content="20261010224502">
+<meta name="sq-build" content="20261010224545">
 <title>Spell Quest</title>
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="favicon.png">
@@ -54,7 +54,7 @@ textarea.field{min-height:220px;resize:vertical;line-height:1.5}
 .bucket.shake svg{animation:shake .5s}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px) rotate(-4deg)}40%{transform:translateX(5px) rotate(4deg)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
 .board{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:clamp(4px,3vh,40px);gap:clamp(10px,2vh,22px);text-align:center}
-.hint{color:var(--muted);font-size:clamp(15px,1.8vw,19px);max-width:36ch;text-wrap:balance;margin:0;height:1.4em;line-height:1.4;white-space:nowrap}
+.hint{color:var(--muted);font-size:clamp(15px,1.8vw,19px);max-width:36ch;text-wrap:balance;margin:0;height:1.4em;line-height:1.4;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .speak{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
 .big{background:var(--accent);color:var(--accent-fg);font-family:var(--display);font-weight:800;font-size:clamp(20px,2.6vw,28px);
   padding:16px 30px;border-radius:999px;box-shadow:0 6px 0 #b98d00;transform:translateY(0);transition:transform .08s,box-shadow .08s}
