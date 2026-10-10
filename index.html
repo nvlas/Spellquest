@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Spell Quest</title>
@@ -62,7 +62,7 @@ button:focus-visible,select:focus-visible{outline:3px solid var(--accent);outlin
 .key{flex:1 1 0;max-width:clamp(44px,8.5vw,92px);height:clamp(48px,7vh,72px);border-radius:12px;background:var(--tile);color:var(--tile-fg);
   font-family:var(--display);font-weight:800;font-size:clamp(20px,2.6vw,30px);text-transform:uppercase;box-shadow:0 4px 0 var(--tile-shadow);
   transition:transform .05s,box-shadow .05s}
-.key:active{transform:translateY(3px);box-shadow:0 1px 0 var(--tile-shadow)}
+.key:active,.key.pressed{transform:translateY(3px);box-shadow:0 1px 0 var(--tile-shadow)}
 .key.wide{flex:1.6 1 0;max-width:clamp(80px,14vw,150px);font-size:clamp(14px,1.7vw,18px);letter-spacing:.06em}
 .key.go{background:var(--good);color:#063d20;box-shadow:0 4px 0 #2d9a5c}
 .key.go:active{box-shadow:0 1px 0 #2d9a5c}
@@ -303,11 +303,19 @@ const ROWS = ["qwertyuiop","asdfghjkl","zxcvbnm"];
 const keys = $('keys');
 ROWS.forEach((r,ri) => {
   const row = document.createElement('div'); row.className = 'row';
-  if(ri === 2){ const b = mk("⌫ Delete","wide"); b.addEventListener('click', back); row.appendChild(b); }
-  for(const ch of r){ const k = mk(ch); k.addEventListener('click', () => type(ch)); row.appendChild(k); }
-  if(ri === 2){ const g = mk("GO ✓","wide go"); g.addEventListener('click', submit); row.appendChild(g); }
+  if(ri === 2){ const b = mk("⌫ Delete","wide"); tap(b, back); row.appendChild(b); }
+  for(const ch of r){ const k = mk(ch); tap(k, () => type(ch)); row.appendChild(k); }
+  if(ri === 2){ const g = mk("GO ✓","wide go"); tap(g, submit); row.appendChild(g); }
   keys.appendChild(row);
 });
+// Register on finger-down so fast taps are never dropped by Safari.
+function tap(el, fn){
+  el.addEventListener('pointerdown', e => {
+    e.preventDefault(); fn();
+    el.classList.add('pressed'); setTimeout(() => el.classList.remove('pressed'), 90);
+  });
+  el.addEventListener('click', e => { if(e.detail === 0) fn(); }); // keyboard Enter/Space on a focused key
+}
 function mk(label, extra=""){ const b = document.createElement('button'); b.className = 'key ' + extra; b.textContent = label; return b; }
 document.addEventListener('keydown', e => {
   if(!$('start').hidden || !$('over').hidden) return;
