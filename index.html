@@ -132,7 +132,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
 <div class="overlay" id="start">
   <div class="panel">
     <h2>Spell Quest</h2>
-    <p>Deep in the Echo Caves, <span id="wcount">150</span> secret words are locked away. A voice whispers each one. Spell it right and fireworks blast the lock open. Spell it wrong and a drop falls into your bucket. If the bucket overflows, the caves flood and the run is over. How far can you get?</p>
+    <p>Deep in the Echo Caves, <span id="wcount">150</span> secret words are locked away. A voice whispers each one. Spell it right and fireworks blast the lock open. Spell it wrong and a drop falls into your bucket. If the bucket overflows, the caves flood. Spell all of them to escape!</p>
     <div class="levels" id="levels" role="group" aria-label="Level">
       <button class="chip" data-level="beginner" aria-pressed="true">Beginner</button>
       <button class="chip" data-level="advanced" aria-pressed="false">Advanced</button>
@@ -235,7 +235,7 @@ const DEFAULT_WORDS = [
 ["romerillo","Romerillo is a flowering plant."],["cemetery","The old cemetery is on the hill."],["dachshund","A dachshund has short legs."],
 ["rendezvous","We will rendezvous at noon."],["Aeolus","Aeolus was the keeper of the winds."]
 ];
-const POINTS = 10, CAPACITY = 6, START_FILL = 3;
+const POINTS = 10, CAPACITY = 6, START_FILL = 3, ROUND = 25;
 const BEGINNER = ["buttons","cuddle","puffy","tiptoed","clever","basement","burlap","wetlands","invite","butterflies","kelp","property","carefully","sniffling","beneath","tractor","permit","awning","relief","lunar","molten","woven","thimble","granola","warrior","rigid","laughter","salary","disappear","lounge","December","dictionary","examine","versus","lullaby","opposite","marlin","Halloween","investment","cutlery","chisel","fundraiser","helium","suggested","organism","custody","fickle","tissues","incident","quail"];
 const ADVANCED = ["boycotting","elite","proclaim","fierce","hurdler","jovial","inferior","duration","business","reinstate","compliment","compromise","Japanese","bifocals","geologist","bellowed","atmosphere","disappointment","truant","pamphlet","chimpanzees","desperate","annoyance","interruption","concentrate","piñata","territory","stragglers","albino","ridiculous","monorail","exploratory","indigo","alphabetical","integrity","Oregon","calico","cartridge","tortillas","civilian","fertilizer","apprentice","synthetic","glamorous","salamanders","suspension","sorceress","convertible","mascara","perimeter"];
 const levelOf = w => BEGINNER.includes(w) ? "beginner" : ADVANCED.includes(w) ? "advanced" : "master";
@@ -286,7 +286,7 @@ function spellOut(word){
 
 // ---------- state ----------
 let score = 0, streak = 0, fill = START_FILL, best = 0;
-let queue = [], current = null, typed = "", locked = false;
+let queue = [], current = null, typed = "", locked = false, asked = 0;
 try { best = parseInt(localStorage.getItem("spellquest-best")||"0",10)||0; } catch(e){}
 
 function render(){
@@ -306,12 +306,14 @@ function render(){
 }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function nextWord(){
-  if(!queue.length) queue = shuffle(WORDS.slice());   // every word once per cycle, random order
-  current = queue.pop(); typed = ""; locked = false;
+  const roundLen = Math.min(ROUND, WORDS.length);
+  if(asked >= roundLen){ win(); return; }
+  if(!queue.length) queue = shuffle(WORDS.slice());   // random order, no repeats within a game
+  current = queue.pop(); asked++; typed = ""; locked = false;
   $('verdict').textContent = ""; $('verdict').className = "verdict";
   $('answer').textContent = "";
   $('sentence').hidden = !current[1];
-  $('hint').textContent = `${current[0].length} letters · ${WORDS.length - queue.length} of ${WORDS.length}`;
+  $('hint').textContent = `${current[0].length} letters · word ${asked} of ${roundLen}`;
   render();
   sayWord(current[0]);
 }
@@ -346,13 +348,22 @@ function submit(){
     else setTimeout(nextWord, 3400);
   }
 }
+function win(){
+  $('over-title').textContent = "You escaped the caves!";
+  $('over-score').textContent = `Score: ${score}`;
+  $('over-msg').textContent = score >= best && score > 0 ? "New best score! 🏆" : `Best so far: ${best}`;
+  $('over').hidden = false;
+  fireworks(); setTimeout(fireworks, 900); setTimeout(fireworks, 1800);
+  say("You did it!", 1);
+}
 function gameOver(){
+  $('over-title').textContent = "The caves flooded!";
   $('over-score').textContent = `Score: ${score}`;
   $('over-msg').textContent = score >= best && score > 0 ? "New best score! 🏆" : `Best so far: ${best}`;
   $('over').hidden = false;
 }
 function reset(){
-  score = 0; streak = 0; fill = START_FILL; queue = []; current = null; typed = "";
+  score = 0; streak = 0; fill = START_FILL; queue = []; asked = 0; current = null; typed = "";
   $('over').hidden = true; render(); nextWord();
 }
 
@@ -397,7 +408,7 @@ function goFull(){
 }
 // ---------- word list editor ----------
 function showCount(){
-  $('wcount').textContent = WORDS.length;
+  $('wcount').textContent = Math.min(ROUND, WORDS.length);
   $('levels').hidden = !!CUSTOM;
   document.querySelectorAll('#levels .chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.level === level)));
 }
