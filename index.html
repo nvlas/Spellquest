@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="sq-build" content="20261010205623">
 <title>Spell Quest</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@500;700&display=swap">
 <style>
@@ -143,7 +144,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
       <button class="chip" data-level="master" aria-pressed="false">Master</button>
     </div>
     <button class="big" id="begin">▶ Start</button>
-    <p class="note">Turn your sound on.</p>
+    <p class="note">Turn your sound on. <span id="ver"></span></p>
     <button class="ghost" id="mywords">✎ Word list</button>
   </div>
 </div>
@@ -585,6 +586,23 @@ function bgFrame(t=0){
   requestAnimationFrame(bgFrame);
 }
 buildCave(); addEventListener('resize', buildCave); requestAnimationFrame(bgFrame);
+
+// ---------- auto-update: reload when GitHub serves a newer build ----------
+const BUILD = document.querySelector('meta[name="sq-build"]').content;
+$('ver').textContent = "· version " + BUILD.slice(-4);
+const idle = () => !$('start').hidden || !$('over').hidden;   // never reload mid-game
+let pending = null;
+async function checkUpdate(){
+  try{
+    const r = await fetch(`./?check=${Date.now()}`, {cache:'no-store'});
+    const m = (await r.text()).match(/name="sq-build" content="([^"]+)"/);
+    if(m && m[1] > BUILD) pending = m[1];
+  }catch(e){}
+  if(pending && idle()) location.replace(`./?v=${pending}`);
+}
+checkUpdate();
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') checkUpdate(); });
+setInterval(checkUpdate, 60000);
 
 render();
 </script>
