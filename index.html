@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="sq-build" content="20261010211220">
+<meta name="sq-build" content="20261010222929">
 <title>Spell Quest</title>
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="favicon.png">
@@ -324,12 +324,19 @@ function say(text, rate=1){
 }
 // Saying a lone word often sounds clipped; a short carrier phrase gives natural prosody.
 const sayWord = (w, rate=0.6) => say(`The word is: ${w}.`, rate);
-function spellOut(word){
-  if(!synth) return;
+// Spell the word letter by letter, then call done() once the voice has finished
+// (with a length-based safety timeout in case the device never reports the end).
+function spellOut(word, done=()=>{}){
+  let finished = false;
+  const finish = () => { if(!finished){ finished = true; done(); } };
+  setTimeout(finish, 2500 + word.length*900);
+  if(!synth){ finish(); return; }
   synth.cancel();
   const u = new SpeechSynthesisUtterance(word.toUpperCase().split("").join(", ") + ". " + word + ".");
   if(voice) u.voice = voice;
   u.rate = 0.85; u.lang = voice ? voice.lang : "en-US";
+  u.onend = () => setTimeout(finish, 700);
+  u.onerror = finish;
   synth.speak(u);
 }
 
@@ -391,10 +398,8 @@ function submit(){
     $('verdict').textContent = "Not quite."; $('verdict').className = "verdict bad";
     $('answer').innerHTML = `It's spelled <b>${current[0].toUpperCase().split("").join(" ")}</b>`;
     const b = $('bucket'); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
-    spellOut(current[0]);
     render();
-    if(fill >= CAPACITY) setTimeout(gameOver, 3000);
-    else setTimeout(nextWord, 3400);
+    spellOut(current[0], () => { if(fill >= CAPACITY) gameOver(); else nextWord(); });
   }
 }
 function win(){
