@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="sq-build" content="20261010224545">
+<meta name="sq-build" content="20261010224826">
 <title>Spell Quest</title>
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="favicon.png">
@@ -25,7 +25,9 @@
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-weight:500;
-  display:flex;flex-direction:column;padding-inline:16px;padding-block:10px;box-sizing:border-box;
+  display:flex;flex-direction:column;box-sizing:border-box;
+  padding-top:calc(10px + env(safe-area-inset-top,0px));padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
+  padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));
   -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
 button,select{font-family:inherit;touch-action:manipulation}
 button{cursor:pointer;border:0}
@@ -72,7 +74,7 @@ textarea.field{min-height:220px;resize:vertical;line-height:1.5}
 @keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
 .answer{font-size:clamp(16px,2vw,20px);color:var(--muted);margin:0;min-height:2.8em;max-width:36ch;text-wrap:balance}
 .answer b{color:var(--fg);letter-spacing:.06em}
-.keys{display:flex;flex-direction:column;gap:clamp(6px,1vh,10px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.keys{display:flex;flex-direction:column;gap:clamp(6px,1vh,10px)}
 .row{display:flex;gap:clamp(4px,.7vw,10px);justify-content:center}
 .key{flex:1 1 0;max-width:clamp(52px,9.6vw,120px);height:clamp(60px,10vh,104px);border-radius:12px;background:var(--tile);color:var(--tile-fg);
   font-family:var(--display);font-weight:800;font-size:clamp(24px,3.6vw,42px);text-transform:uppercase;box-shadow:0 4px 0 var(--tile-shadow);
@@ -81,7 +83,7 @@ textarea.field{min-height:220px;resize:vertical;line-height:1.5}
 .key.wide{flex:1.6 1 0;max-width:clamp(84px,15vw,180px);font-size:clamp(15px,2vw,22px);letter-spacing:.06em}
 .key.go{background:var(--good);color:#063d20;box-shadow:0 4px 0 #2d9a5c}
 .key.go:active{box-shadow:0 1px 0 #2d9a5c}
-.overlay{position:fixed;inset:0;background:rgba(10,14,34,.45);display:flex;align-items:center;justify-content:center;padding:24px;z-index:5;overflow:auto}
+.overlay{position:fixed;inset:0;padding-top:calc(24px + env(safe-area-inset-top,0px)) !important;background:rgba(10,14,34,.45);display:flex;align-items:center;justify-content:center;padding:24px;z-index:5;overflow:auto}
 .panel{background:var(--board);border-radius:24px;padding:clamp(24px,4vw,44px);max-width:560px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 .panel h2{font-family:var(--display);font-weight:800;font-size:clamp(34px,6vw,56px);margin:0 0 8px;color:var(--accent);text-wrap:balance;line-height:1}
 .panel p{color:var(--muted);font-size:clamp(16px,2vw,19px);margin:0 0 18px;text-wrap:balance}
