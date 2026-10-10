@@ -42,6 +42,9 @@ textarea.field{min-height:220px;resize:vertical;line-height:1.5}
 .btnrow{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:16px}
 .panel .err{color:var(--bad);font-weight:700;min-height:1.4em;margin:10px 0 0}
 .panel .ghost{margin-top:4px}
+.levels{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:0 0 20px}
+.chip{background:transparent;color:var(--muted);border:2px solid #3a4580;border-radius:999px;padding:10px 18px;font-weight:800;font-size:clamp(15px,1.8vw,18px)}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 #liquid{transition:y .5s ease,height .5s ease,fill .5s}
 .bucket.shake svg{animation:shake .5s}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px) rotate(-4deg)}40%{transform:translateX(5px) rotate(4deg)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
@@ -130,6 +133,11 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   <div class="panel">
     <h2>Spell Quest</h2>
     <p>Deep in the Echo Caves, <span id="wcount">150</span> secret words are locked away. A voice whispers each one. Spell it right and fireworks blast the lock open. Spell it wrong and a drop falls into your bucket. If the bucket overflows, the caves flood and the run is over. How far can you get?</p>
+    <div class="levels" id="levels" role="group" aria-label="Level">
+      <button class="chip" data-level="beginner" aria-pressed="true">Beginner</button>
+      <button class="chip" data-level="advanced" aria-pressed="false">Advanced</button>
+      <button class="chip" data-level="master" aria-pressed="false">Master</button>
+    </div>
     <button class="big" id="begin">▶ Start</button>
     <p class="note">Turn your sound on.</p>
     <button class="ghost" id="mywords">✎ Word list</button>
@@ -228,11 +236,19 @@ const DEFAULT_WORDS = [
 ["rendezvous","We will rendezvous at noon."],["Aeolus","Aeolus was the keeper of the winds."]
 ];
 const POINTS = 10, CAPACITY = 6, START_FILL = 3;
-let WORDS = DEFAULT_WORDS;
+const BEGINNER = ["buttons","cuddle","puffy","tiptoed","clever","basement","burlap","wetlands","invite","butterflies","kelp","property","carefully","sniffling","beneath","tractor","permit","awning","relief","lunar","molten","woven","thimble","granola","warrior","rigid","laughter","salary","disappear","lounge","December","dictionary","examine","versus","lullaby","opposite","marlin","Halloween","investment","cutlery","chisel","fundraiser","helium","suggested","organism","custody","fickle","tissues","incident","quail"];
+const ADVANCED = ["boycotting","elite","proclaim","fierce","hurdler","jovial","inferior","duration","business","reinstate","compliment","compromise","Japanese","bifocals","geologist","bellowed","atmosphere","disappointment","truant","pamphlet","chimpanzees","desperate","annoyance","interruption","concentrate","piñata","territory","stragglers","albino","ridiculous","monorail","exploratory","indigo","alphabetical","integrity","Oregon","calico","cartridge","tortillas","civilian","fertilizer","apprentice","synthetic","glamorous","salamanders","suspension","sorceress","convertible","mascara","perimeter"];
+const levelOf = w => BEGINNER.includes(w) ? "beginner" : ADVANCED.includes(w) ? "advanced" : "master";
+let CUSTOM = null, level = "beginner", WORDS = [];
 try{
   const saved = JSON.parse(localStorage.getItem("spellquest-words") || "null");
-  if(Array.isArray(saved) && saved.length) WORDS = saved.map(w => [w]);
+  if(Array.isArray(saved) && saved.length) CUSTOM = saved.map(w => [w]);
+  const lv = localStorage.getItem("spellquest-level"); if(["beginner","advanced","master"].includes(lv)) level = lv;
 }catch(e){}
+function applyWords(){
+  WORDS = CUSTOM || DEFAULT_WORDS.filter(w => levelOf(w[0]) === level);
+  queue = [];
+}
 const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
 const $ = id => document.getElementById(id);
 
@@ -380,7 +396,17 @@ function goFull(){
   }catch(e){}
 }
 // ---------- word list editor ----------
-const showCount = () => { $('wcount').textContent = WORDS.length; };
+function showCount(){
+  $('wcount').textContent = WORDS.length;
+  $('levels').hidden = !!CUSTOM;
+  document.querySelectorAll('#levels .chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.level === level)));
+}
+document.querySelectorAll('#levels .chip').forEach(c => c.addEventListener('click', () => {
+  level = c.dataset.level;
+  try{ localStorage.setItem("spellquest-level", level); }catch(e){}
+  applyWords(); showCount();
+}));
+applyWords();
 showCount();
 function openWords(){
   $('pw').value = ""; $('pwerr').textContent = ""; $('wlerr').textContent = "";
@@ -400,12 +426,12 @@ function saveWords(){
     if(w && !seen.has(norm(w))){ seen.add(norm(w)); list.push(w); }
   }
   if(!list.length){ $('wlerr').textContent = "Add at least one word."; return; }
-  WORDS = list.map(w => [w]);
+  CUSTOM = list.map(w => [w]); applyWords();
   try{ localStorage.setItem("spellquest-words", JSON.stringify(list)); }catch(e){}
   queue = []; showCount(); closeWords();
 }
 function useDefault(){
-  WORDS = DEFAULT_WORDS;
+  CUSTOM = null; applyWords();
   try{ localStorage.removeItem("spellquest-words"); }catch(e){}
   queue = []; showCount(); closeWords();
 }
