@@ -32,13 +32,20 @@ button:focus-visible,select:focus-visible{outline:3px solid var(--accent);outlin
 .stat{display:flex;flex-direction:column;align-items:center;line-height:1.1}
 .stat b{font-family:var(--display);font-size:clamp(20px,2.6vw,28px);font-weight:800}
 .stat span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.bucket{display:flex;flex-direction:column;align-items:center;gap:2px}
-.bucket svg{width:clamp(44px,6vw,64px);height:auto;display:block;overflow:visible}
-.bucket span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.stage{flex:1;min-height:0;display:flex;align-items:center;gap:clamp(12px,3vw,40px)}
+.bucket{flex:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding:clamp(10px,1.5vw,18px);border-radius:22px;background:var(--board)}
+.bucket svg{width:clamp(90px,15vw,180px);height:auto;display:block;overflow:visible}
+.bucket .blabel{font-family:var(--display);font-weight:800;font-size:clamp(15px,1.8vw,20px);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.bucket .bcount{font-family:var(--display);font-weight:800;font-size:clamp(20px,2.6vw,30px);color:var(--fg);font-variant-numeric:tabular-nums;line-height:1}
+.field{width:100%;box-sizing:border-box;background:#0f1430;color:var(--fg);border:2px solid #3a4580;border-radius:14px;padding:12px 14px;font:inherit;font-size:17px;-webkit-user-select:text;user-select:text}
+textarea.field{min-height:220px;resize:vertical;line-height:1.5}
+.btnrow{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+.panel .err{color:var(--bad);font-weight:700;min-height:1.4em;margin:10px 0 0}
+.panel .ghost{margin-top:4px}
 #liquid{transition:y .5s ease,height .5s ease,fill .5s}
 .bucket.shake svg{animation:shake .5s}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px) rotate(-4deg)}40%{transform:translateX(5px) rotate(4deg)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
-.board{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(10px,2vh,22px);text-align:center}
+.board{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(10px,2vh,22px);text-align:center}
 .hint{color:var(--muted);font-size:clamp(15px,1.8vw,19px);max-width:36ch;text-wrap:balance;margin:0;min-height:1.4em}
 .speak{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
 .big{background:var(--accent);color:var(--accent-fg);font-family:var(--display);font-weight:800;font-size:clamp(20px,2.6vw,28px);
@@ -78,7 +85,7 @@ select{background:#0f1430;color:var(--fg);border:2px solid #3a4580;border-radius
 .note{font-size:13px;color:var(--muted);margin-top:14px}
 canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
 @media (prefers-reduced-motion:reduce){.big,.key,.ghost,#liquid{transition:none}.verdict.good,.bucket.shake svg{animation:none}}
-@media (max-width:520px){.stats{gap:12px}.key{height:54px;font-size:20px}.key.wide{font-size:12px}}
+@media (max-width:600px){.stage{flex-direction:column;gap:8px}.bucket{flex-direction:row;padding:8px 14px}.bucket svg{width:56px}.stats{gap:12px}.key{height:54px;font-size:20px}.key.wide{font-size:12px}}
 </style>
 </head>
 <body>
@@ -89,20 +96,22 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     <div class="stat"><b id="score">0</b><span>Score</span></div>
     <div class="stat"><b id="streak">0</b><span>Streak</span></div>
     <div class="stat"><b id="best">0</b><span>Best</span></div>
-    <div class="bucket" id="bucket" aria-label="Bucket">
-      <svg viewBox="0 0 64 70" aria-hidden="true">
-        <defs><clipPath id="bclip"><path d="M8 14 L56 14 L50 62 Q32 68 14 62 Z"/></clipPath></defs>
-        <path d="M8 14 L56 14 L50 62 Q32 68 14 62 Z" fill="#0f1430"/>
-        <rect id="liquid" clip-path="url(#bclip)" x="0" y="64" width="64" height="0" fill="#5ad1ff"/>
-        <path d="M8 14 L56 14 L50 62 Q32 68 14 62 Z" fill="none" stroke="#a9b0d6" stroke-width="3" stroke-linejoin="round"/>
-        <path d="M14 14 Q32 -6 50 14" fill="none" stroke="#a9b0d6" stroke-width="3" stroke-linecap="round"/>
-        <rect x="4" y="12" width="56" height="5" rx="2" fill="#a9b0d6"/>
-      </svg>
-      <span>Bucket</span>
-    </div>
   </div>
 </header>
 
+<div class="stage">
+  <div class="bucket" id="bucket" aria-label="Bucket">
+    <svg viewBox="0 0 64 70" aria-hidden="true">
+      <defs><clipPath id="bclip"><path d="M8 14 L56 14 L50 62 Q32 68 14 62 Z"/></clipPath></defs>
+      <path d="M8 14 L56 14 L50 62 Q32 68 14 62 Z" fill="#0f1430"/>
+      <rect id="liquid" clip-path="url(#bclip)" x="0" y="64" width="64" height="0" fill="#5ad1ff"/>
+      <path d="M8 14 L56 14 L50 62 Q32 68 14 62 Z" fill="none" stroke="#a9b0d6" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M14 14 Q32 -6 50 14" fill="none" stroke="#a9b0d6" stroke-width="3" stroke-linecap="round"/>
+      <rect x="4" y="12" width="56" height="5" rx="2" fill="#a9b0d6"/>
+    </svg>
+    <span class="bcount" id="bcount">3 / 6</span>
+    <span class="blabel">Bucket</span>
+  </div>
 <main class="board">
   <p class="hint" id="hint">Tap “Hear word”, then spell it with the tiles.</p>
   <div class="speak">
@@ -113,15 +122,17 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   <p class="verdict" id="verdict"></p>
   <p class="answer" id="answer"></p>
 </main>
+</div>
 
 <section class="keys" id="keys" aria-label="Letter tiles"></section>
 
 <div class="overlay" id="start">
   <div class="panel">
     <h2>Spell Quest</h2>
-    <p>Deep in the Echo Caves, 150 secret words are locked away. A voice whispers each one. Spell it right and fireworks blast the lock open. Spell it wrong and a drop falls into your bucket. If the bucket overflows, the caves flood and the run is over. How far can you get?</p>
+    <p>Deep in the Echo Caves, <span id="wcount">150</span> secret words are locked away. A voice whispers each one. Spell it right and fireworks blast the lock open. Spell it wrong and a drop falls into your bucket. If the bucket overflows, the caves flood and the run is over. How far can you get?</p>
     <button class="big" id="begin">▶ Start</button>
     <p class="note">Turn your sound on.</p>
+    <button class="ghost" id="mywords">✎ Word list</button>
   </div>
 </div>
 
@@ -134,11 +145,36 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   </div>
 </div>
 
+<div class="overlay" id="words" hidden>
+  <div class="panel">
+    <h2>Word list</h2>
+    <div id="lockstep">
+      <p>Grown-ups only. Enter the password.</p>
+      <input class="field" id="pw" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Password">
+      <p class="err" id="pwerr"></p>
+      <div class="btnrow">
+        <button class="big" id="unlock">Unlock</button>
+        <button class="ghost" id="wclose1">Cancel</button>
+      </div>
+    </div>
+    <div id="editstep" hidden>
+      <p>One word per line (commas also work). Saved on this device.</p>
+      <textarea class="field" id="wlist" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Word list"></textarea>
+      <p class="err" id="wlerr"></p>
+      <div class="btnrow">
+        <button class="big" id="wsave">Save</button>
+        <button class="ghost" id="wdefault">Use original list</button>
+        <button class="ghost" id="wclose2">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <canvas id="fx"></canvas>
 
 <script>
 // ---------- word bank: [word, sentence, accepted alternates...] ----------
-const WORDS = [
+const DEFAULT_WORDS = [
 ["buttons","Fasten the buttons on your coat."],["cuddle","The kitten likes to cuddle."],["puffy","The clouds looked puffy."],
 ["tiptoed","She tiptoed past the sleeping dog."],["clever","That was a clever idea."],["basement","The boxes are in the basement."],
 ["burlap","The sack is made of burlap."],["wetlands","Herons live in the wetlands."],["invite","Did you invite your cousin?"],
@@ -191,7 +227,12 @@ const WORDS = [
 ["romerillo","Romerillo is a flowering plant."],["cemetery","The old cemetery is on the hill."],["dachshund","A dachshund has short legs."],
 ["rendezvous","We will rendezvous at noon."],["Aeolus","Aeolus was the keeper of the winds."]
 ];
-const POINTS = 10, CAPACITY = 5;
+const POINTS = 10, CAPACITY = 6, START_FILL = 3;
+let WORDS = DEFAULT_WORDS;
+try{
+  const saved = JSON.parse(localStorage.getItem("spellquest-words") || "null");
+  if(Array.isArray(saved) && saved.length) WORDS = saved.map(w => [w]);
+}catch(e){}
 const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
 const $ = id => document.getElementById(id);
 
@@ -228,7 +269,7 @@ function spellOut(word){
 }
 
 // ---------- state ----------
-let score = 0, streak = 0, fill = 0, best = 0;
+let score = 0, streak = 0, fill = START_FILL, best = 0;
 let queue = [], current = null, typed = "", locked = false;
 try { best = parseInt(localStorage.getItem("spellquest-best")||"0",10)||0; } catch(e){}
 
@@ -236,6 +277,7 @@ function render(){
   $('score').textContent = score; $('streak').textContent = streak; $('best').textContent = best;
   const h = 48 * Math.min(fill, CAPACITY) / CAPACITY;      // bucket interior spans y=14..62
   const liq = $('liquid'); liq.setAttribute('height', h); liq.setAttribute('y', 62 - h);
+  $('bcount').textContent = `${Math.min(fill, CAPACITY)} / ${CAPACITY}`;
   liq.setAttribute('fill', fill >= CAPACITY-1 ? '#ff6b6b' : fill >= CAPACITY-2 ? '#ffb347' : '#5ad1ff');
   const slots = $('slots'); slots.innerHTML = "";
   const n = current ? current[0].length : 0;
@@ -252,6 +294,7 @@ function nextWord(){
   current = queue.pop(); typed = ""; locked = false;
   $('verdict').textContent = ""; $('verdict').className = "verdict";
   $('answer').textContent = "";
+  $('sentence').hidden = !current[1];
   $('hint').textContent = `${current[0].length} letters · ${WORDS.length - queue.length} of ${WORDS.length}`;
   render();
   sayWord(current[0]);
@@ -293,7 +336,7 @@ function gameOver(){
   $('over').hidden = false;
 }
 function reset(){
-  score = 0; streak = 0; fill = 0; queue = []; current = null; typed = "";
+  score = 0; streak = 0; fill = START_FILL; queue = []; current = null; typed = "";
   $('over').hidden = true; render(); nextWord();
 }
 
@@ -336,6 +379,44 @@ function goFull(){
     }
   }catch(e){}
 }
+// ---------- word list editor ----------
+const showCount = () => { $('wcount').textContent = WORDS.length; };
+showCount();
+function openWords(){
+  $('pw').value = ""; $('pwerr').textContent = ""; $('wlerr').textContent = "";
+  $('lockstep').hidden = false; $('editstep').hidden = true; $('words').hidden = false;
+  setTimeout(() => $('pw').focus(), 50);
+}
+function closeWords(){ $('words').hidden = true; }
+function unlock(){
+  if($('pw').value.trim().toLowerCase() !== "sq"){ $('pwerr').textContent = "Wrong password."; return; }
+  $('wlist').value = WORDS.map(w => w[0]).join("\n");
+  $('lockstep').hidden = true; $('editstep').hidden = false;
+}
+function saveWords(){
+  const seen = new Set(), list = [];
+  for(const raw of $('wlist').value.split(/[\n,;]+/)){
+    const w = raw.trim().replace(/[^A-Za-zÀ-ÿ'-]/g, "").replace(/['-]/g, "");
+    if(w && !seen.has(norm(w))){ seen.add(norm(w)); list.push(w); }
+  }
+  if(!list.length){ $('wlerr').textContent = "Add at least one word."; return; }
+  WORDS = list.map(w => [w]);
+  try{ localStorage.setItem("spellquest-words", JSON.stringify(list)); }catch(e){}
+  queue = []; showCount(); closeWords();
+}
+function useDefault(){
+  WORDS = DEFAULT_WORDS;
+  try{ localStorage.removeItem("spellquest-words"); }catch(e){}
+  queue = []; showCount(); closeWords();
+}
+$('mywords').addEventListener('click', openWords);
+$('unlock').addEventListener('click', unlock);
+$('pw').addEventListener('keydown', e => { if(e.key === "Enter") unlock(); });
+$('wsave').addEventListener('click', saveWords);
+$('wdefault').addEventListener('click', useDefault);
+$('wclose1').addEventListener('click', closeWords);
+$('wclose2').addEventListener('click', closeWords);
+
 $('begin').addEventListener('click', () => { goFull(); $('start').hidden = true; reset(); });
 $('again').addEventListener('click', () => { goFull(); reset(); });
 
