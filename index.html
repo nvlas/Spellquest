@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="sq-build" content="20261010222929">
+<meta name="sq-build" content="20261010223150">
 <title>Spell Quest</title>
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="favicon.png">
@@ -329,15 +329,21 @@ const sayWord = (w, rate=0.6) => say(`The word is: ${w}.`, rate);
 function spellOut(word, done=()=>{}){
   let finished = false;
   const finish = () => { if(!finished){ finished = true; done(); } };
-  setTimeout(finish, 2500 + word.length*900);
+  setTimeout(finish, 4500 + word.length*900);
   if(!synth){ finish(); return; }
   synth.cancel();
-  const u = new SpeechSynthesisUtterance(word.toUpperCase().split("").join(", ") + ". " + word + ".");
-  if(voice) u.voice = voice;
-  u.rate = 0.85; u.lang = voice ? voice.lang : "en-US";
-  u.onend = () => setTimeout(finish, 700);
-  u.onerror = finish;
-  synth.speak(u);
+  const mk = (text, rate) => {
+    const u = new SpeechSynthesisUtterance(text);
+    if(voice) u.voice = voice;
+    u.rate = rate; u.lang = voice ? voice.lang : "en-US";
+    u.onerror = finish;
+    return u;
+  };
+  const letters = mk(word.toUpperCase().split("").join(", ") + ".", 0.85);
+  const whole = mk(word + ".", 0.6);
+  letters.onend = () => setTimeout(() => { if(!finished) synth.speak(whole); }, 900);   // short pause, then the whole word
+  whole.onend = () => setTimeout(finish, 700);
+  synth.speak(letters);
 }
 
 // ---------- state ----------
