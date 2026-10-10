@@ -58,12 +58,12 @@ button:focus-visible,select:focus-visible{outline:3px solid var(--accent);outlin
 .answer{font-size:clamp(16px,2vw,20px);color:var(--muted);margin:0;min-height:1.4em}
 .answer b{color:var(--fg);letter-spacing:.06em}
 .keys{display:flex;flex-direction:column;gap:clamp(6px,1vh,10px);padding-bottom:env(safe-area-inset-bottom,0px)}
-.row{display:flex;gap:clamp(5px,.8vw,10px);justify-content:center}
-.key{flex:1 1 0;max-width:clamp(44px,8.5vw,92px);height:clamp(48px,7vh,72px);border-radius:12px;background:var(--tile);color:var(--tile-fg);
-  font-family:var(--display);font-weight:800;font-size:clamp(20px,2.6vw,30px);text-transform:uppercase;box-shadow:0 4px 0 var(--tile-shadow);
+.row{display:flex;gap:clamp(4px,.7vw,10px);justify-content:center}
+.key{flex:1 1 0;max-width:clamp(52px,9.6vw,120px);height:clamp(60px,10vh,104px);border-radius:12px;background:var(--tile);color:var(--tile-fg);
+  font-family:var(--display);font-weight:800;font-size:clamp(24px,3.6vw,42px);text-transform:uppercase;box-shadow:0 4px 0 var(--tile-shadow);
   transition:transform .05s,box-shadow .05s}
 .key:active,.key.pressed{transform:translateY(3px);box-shadow:0 1px 0 var(--tile-shadow)}
-.key.wide{flex:1.6 1 0;max-width:clamp(80px,14vw,150px);font-size:clamp(14px,1.7vw,18px);letter-spacing:.06em}
+.key.wide{flex:1.6 1 0;max-width:clamp(84px,15vw,180px);font-size:clamp(15px,2vw,22px);letter-spacing:.06em}
 .key.go{background:var(--good);color:#063d20;box-shadow:0 4px 0 #2d9a5c}
 .key.go:active{box-shadow:0 1px 0 #2d9a5c}
 .overlay{position:fixed;inset:0;background:rgba(10,14,34,.92);display:flex;align-items:center;justify-content:center;padding:24px;z-index:5;overflow:auto}
@@ -78,7 +78,7 @@ select{background:#0f1430;color:var(--fg);border:2px solid #3a4580;border-radius
 .note{font-size:13px;color:var(--muted);margin-top:14px}
 canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
 @media (prefers-reduced-motion:reduce){.big,.key,.ghost,#liquid{transition:none}.verdict.good,.bucket.shake svg{animation:none}}
-@media (max-width:520px){.stats{gap:12px}.key{height:46px;font-size:18px}.key.wide{font-size:12px}}
+@media (max-width:520px){.stats{gap:12px}.key{height:54px;font-size:20px}.key.wide{font-size:12px}}
 </style>
 </head>
 <body>
@@ -107,7 +107,6 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   <p class="hint" id="hint">Tap “Hear word”, then spell it with the tiles.</p>
   <div class="speak">
     <button class="big" id="hear">🔊 Hear word</button>
-    <button class="ghost" id="slow">Say it faster</button>
     <button class="ghost" id="sentence">Use it in a sentence</button>
   </div>
   <div class="slots" id="slots" aria-live="polite"></div>
@@ -327,7 +326,6 @@ document.addEventListener('keydown', e => {
 
 // ---------- controls ----------
 $('hear').addEventListener('click', () => current && sayWord(current[0]));
-$('slow').addEventListener('click', () => current && sayWord(current[0], 1));
 $('sentence').addEventListener('click', () => current && say(current[1], 0.95));
 function goFull(){
   const el = document.documentElement;
