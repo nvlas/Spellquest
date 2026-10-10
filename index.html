@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Spell Quest</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@500;700&display=swap">
+<style>
+/* Layout: one-screen arcade board. Score strip + bucket meter on top, word card in the middle, tile keyboard pinned to the bottom. Single committed "night arcade" look. */
+:root{
+  --bg:#141b3a; --board:#1e2752; --fg:#f6f1e3; --muted:#a9b0d6;
+  --accent:#ffcf3f; --accent-fg:#2a1d00;
+  --tile:#f6f1e3; --tile-fg:#1b2142; --tile-shadow:#bfb49a;
+  --good:#4fd68a; --bad:#ff6b6b; --water:#5ad1ff; --water-hot:#ff6b6b;
+  --display:"Baloo 2","Arial Rounded MT Bold",system-ui,sans-serif;
+  --body:"Nunito",system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-weight:500;
+  display:flex;flex-direction:column;padding-inline:16px;padding-block:10px;box-sizing:border-box;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+button,select{font-family:inherit;touch-action:manipulation}
+button{cursor:pointer;border:0}
+button:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:clamp(22px,3vw,30px);letter-spacing:.5px;color:var(--accent);margin:0}
+.stats{display:flex;gap:18px;font-variant-numeric:tabular-nums;align-items:center}
+.stat{display:flex;flex-direction:column;align-items:center;line-height:1.1}
+.stat b{font-family:var(--display);font-size:clamp(20px,2.6vw,28px);font-weight:800}
+.stat span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.bucket{display:flex;flex-direction:column;align-items:center;gap:2px}
+.bucket svg{width:clamp(44px,6vw,64px);height:auto;display:block;overflow:visible}
+.bucket span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+#liquid{transition:y .5s ease,height .5s ease,fill .5s}
+.bucket.shake svg{animation:shake .5s}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px) rotate(-4deg)}40%{transform:translateX(5px) rotate(4deg)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.board{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(10px,2vh,22px);text-align:center}
+.hint{color:var(--muted);font-size:clamp(15px,1.8vw,19px);max-width:36ch;text-wrap:balance;margin:0;min-height:1.4em}
+.speak{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.big{background:var(--accent);color:var(--accent-fg);font-family:var(--display);font-weight:800;font-size:clamp(20px,2.6vw,28px);
+  padding:16px 30px;border-radius:999px;box-shadow:0 6px 0 #b98d00;transform:translateY(0);transition:transform .08s,box-shadow .08s}
+.big:active{transform:translateY(5px);box-shadow:0 1px 0 #b98d00}
+.ghost{background:#2b3669;color:var(--fg);font-weight:700;font-size:clamp(15px,1.8vw,18px);padding:14px 22px;border-radius:999px}
+.ghost:active{background:#394686}
+.slots{display:flex;gap:clamp(6px,1vw,12px);flex-wrap:wrap;justify-content:center;max-width:100%}
+.slot{width:clamp(34px,5.2vw,60px);height:clamp(46px,6.8vw,74px);border-radius:12px;background:#0f1430;border:2px dashed #3a4580;
+  display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:clamp(22px,3.6vw,40px);text-transform:uppercase;color:var(--fg)}
+.slot.filled{border-style:solid;border-color:#5a67b0;background:#262f63}
+.slot.ok{background:var(--good);color:#063d20;border-color:var(--good)}
+.slot.no{background:var(--bad);color:#4a0d0d;border-color:var(--bad)}
+.verdict{font-family:var(--display);font-weight:800;font-size:clamp(26px,3.6vw,40px);min-height:1.3em;margin:0}
+.verdict.good{color:var(--good);animation:pop .5s} .verdict.bad{color:var(--bad)}
+@keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+.answer{font-size:clamp(16px,2vw,20px);color:var(--muted);margin:0;min-height:1.4em}
+.answer b{color:var(--fg);letter-spacing:.06em}
+.keys{display:flex;flex-direction:column;gap:clamp(6px,1vh,10px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.row{display:flex;gap:clamp(5px,.8vw,10px);justify-content:center}
+.key{flex:1 1 0;max-width:clamp(44px,8.5vw,92px);height:clamp(48px,7vh,72px);border-radius:12px;background:var(--tile);color:var(--tile-fg);
+  font-family:var(--display);font-weight:800;font-size:clamp(20px,2.6vw,30px);text-transform:uppercase;box-shadow:0 4px 0 var(--tile-shadow);
+  transition:transform .05s,box-shadow .05s}
+.key:active{transform:translateY(3px);box-shadow:0 1px 0 var(--tile-shadow)}
+.key.wide{flex:1.6 1 0;max-width:clamp(80px,14vw,150px);font-size:clamp(14px,1.7vw,18px);letter-spacing:.06em}
+.key.go{background:var(--good);color:#063d20;box-shadow:0 4px 0 #2d9a5c}
+.key.go:active{box-shadow:0 1px 0 #2d9a5c}
+.overlay{position:fixed;inset:0;background:rgba(10,14,34,.92);display:flex;align-items:center;justify-content:center;padding:24px;z-index:5;overflow:auto}
+.panel{background:var(--board);border-radius:24px;padding:clamp(24px,4vw,44px);max-width:560px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.panel h2{font-family:var(--display);font-weight:800;font-size:clamp(34px,6vw,56px);margin:0 0 8px;color:var(--accent);text-wrap:balance;line-height:1}
+.panel p{color:var(--muted);font-size:clamp(16px,2vw,19px);margin:0 0 18px;text-wrap:balance}
+.panel .big{margin-top:6px}
+.score-line{font-family:var(--display);font-size:clamp(22px,3vw,30px);font-weight:800;margin:0 0 6px;color:var(--fg)}
+.voicebox{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin:0 0 18px}
+.voicebox label{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+select{background:#0f1430;color:var(--fg);border:2px solid #3a4580;border-radius:12px;padding:10px 12px;font-size:15px;max-width:min(100%,280px)}
+.note{font-size:13px;color:var(--muted);margin-top:14px}
+canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
+@media (prefers-reduced-motion:reduce){.big,.key,.ghost,#liquid{transition:none}.verdict.good,.bucket.shake svg{animation:none}}
+@media (max-width:520px){.stats{gap:12px}.key{height:46px;font-size:18px}.key.wide{font-size:12px}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1 class="brand">Spell Quest</h1>
+  <div class="stats">
+    <div class="stat"><b id="score">0</b><span>Score</span></div>
+    <div class="stat"><b id="streak">0</b><span>Streak</span></div>
+    <div class="stat"><b id="best">0</b><span>Best</span></div>
+    <div class="bucket" id="bucket" aria-label="Bucket">
+      <svg viewBox="0 0 64 70" aria-hidden="true">
+        <defs><clipPath id="bclip"><path d="M8 14 L56 14 L50 62 Q32 68 14 62 Z"/></clipPath></defs>
+        <path d="M8 14 L56 14 L50 62 Q32 68 14 62 Z" fill="#0f1430"/>
+        <rect id="liquid" clip-path="url(#bclip)" x="0" y="64" width="64" height="0" fill="#5ad1ff"/>
+        <path d="M8 14 L56 14 L50 62 Q32 68 14 62 Z" fill="none" stroke="#a9b0d6" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M14 14 Q32 -6 50 14" fill="none" stroke="#a9b0d6" stroke-width="3" stroke-linecap="round"/>
+        <rect x="4" y="12" width="56" height="5" rx="2" fill="#a9b0d6"/>
+      </svg>
+      <span>Bucket</span>
+    </div>
+  </div>
+</header>
+
+<main class="board">
+  <p class="hint" id="hint">Tap “Hear word”, then spell it with the tiles.</p>
+  <div class="speak">
+    <button class="big" id="hear">🔊 Hear word</button>
+    <button class="ghost" id="slow">Say it faster</button>
+    <button class="ghost" id="sentence">Use it in a sentence</button>
+  </div>
+  <div class="slots" id="slots" aria-live="polite"></div>
+  <p class="verdict" id="verdict"></p>
+  <p class="answer" id="answer"></p>
+</main>
+
+<section class="keys" id="keys" aria-label="Letter tiles"></section>
+
+<div class="overlay" id="start">
+  <div class="panel">
+    <h2>Spell Quest</h2>
+    <p>Deep in the Echo Caves, 150 secret words are locked away. A voice whispers each one. Spell it right and fireworks blast the lock open. Spell it wrong and a drop falls into your bucket. If the bucket overflows, the caves flood and the run is over. How far can you get?</p>
+    <button class="big" id="begin">▶ Start</button>
+    <p class="note">Turn your sound on.</p>
+  </div>
+</div>
+
+<div class="overlay" id="over" hidden>
+  <div class="panel">
+    <h2 id="over-title">The caves flooded!</h2>
+    <p class="score-line" id="over-score"></p>
+    <p id="over-msg"></p>
+    <button class="big" id="again">↻ Try again</button>
+  </div>
+</div>
+
+<canvas id="fx"></canvas>
+
+<script>
+// ---------- word bank: [word, sentence, accepted alternates...] ----------
+const WORDS = [
+["buttons","Fasten the buttons on your coat."],["cuddle","The kitten likes to cuddle."],["puffy","The clouds looked puffy."],
+["tiptoed","She tiptoed past the sleeping dog."],["clever","That was a clever idea."],["basement","The boxes are in the basement."],
+["burlap","The sack is made of burlap."],["wetlands","Herons live in the wetlands."],["invite","Did you invite your cousin?"],
+["butterflies","Butterflies landed on the flowers."],["kelp","Kelp grows in the ocean."],["property","This land is private property."],
+["carefully","Carry the eggs carefully."],["sniffling","He was sniffling from a cold."],["beneath","The cat hid beneath the bed."],
+["tractor","The farmer drove the tractor."],["permit","You need a permit to fish here."],["awning","We stood under the awning in the rain."],
+["fickle","The weather is fickle in spring."],["relief","What a relief that you are safe."],["lunar","We watched the lunar eclipse."],
+["boycotting","They are boycotting the store."],["molten","Molten lava flowed down the hill."],["elite","She joined an elite team."],
+["woven","The basket is woven from reeds."],["proclaim","The king will proclaim a holiday."],["thimble","Put a thimble on your finger to sew."],
+["custody","The museum has custody of the painting."],["granola","I had granola for breakfast."],["warrior","The warrior raised his shield."],
+["rigid","The frozen rope was rigid."],["fierce","A fierce wind blew all night."],["laughter","Laughter filled the room."],
+["salary","She earns a good salary."],["disappear","The magician made the coin disappear."],["hurdler","The hurdler cleared every bar."],
+["lounge","We waited in the airport lounge."],["jovial","Grandpa is always jovial."],["inferior","This copy is inferior to the original."],
+["December","Snow often falls in December."],["duration","Stay seated for the duration of the flight."],["dictionary","Look it up in the dictionary."],
+["business","My aunt runs a small business."],["reinstate","The coach will reinstate the player."],["examine","The doctor will examine your arm."],
+["versus","It is our team versus theirs."],["lullaby","Mom sang a lullaby."],["opposite","Hot is the opposite of cold."],
+["tissues","Please pass the tissues."],["marlin","The fisherman caught a marlin."],["Halloween","We carve pumpkins for Halloween."],
+["compliment","She paid him a kind compliment."],["compromise","Let us find a compromise."],["incident","The incident was reported to the principal."],
+["Japanese","We learned a Japanese song."],["investment","The investment grew over time."],["bifocals","Grandma reads with bifocals."],
+["cutlery","Set the cutlery on the table."],["chisel","Carve the wood with a chisel."],["fundraiser","The class held a fundraiser."],
+["geologist","A geologist studies rocks."],["bellowed","The bull bellowed loudly."],["organism","A cell is the smallest organism."],
+["quail","A quail darted into the bushes."],["atmosphere","Earth's atmosphere protects us."],["disappointment","Losing was a big disappointment."],
+["truant","The truant skipped school."],["pamphlet","Read the pamphlet about recycling."],["helium","Helium makes balloons float."],
+["suggested","She suggested a picnic."],["chimpanzees","Chimpanzees use tools."],["desperate","The lost hiker was desperate for water."],
+["annoyance","The buzzing fly was an annoyance."],["interruption","Sorry for the interruption."],["concentrate","Please concentrate on your work."],
+["piñata","We broke the piñata at the party.","pinata"],
+["territory","The wolves guard their territory."],["stragglers","The stragglers caught up with the group."],["albino","An albino rabbit has pink eyes."],
+["ridiculous","That hat looks ridiculous."],["monorail","We rode the monorail to the park."],["exploratory","The scientists took an exploratory trip."],
+["indigo","Indigo is a deep blue color."],["bratwurst","We grilled bratwurst for dinner."],["alphabetical","Put the names in alphabetical order."],
+["integrity","She is known for her integrity."],["Oregon","Portland is in Oregon."],["rebuttal","The lawyer gave a strong rebuttal."],
+["prejudice","Judge people without prejudice."],["solidarity","The workers stood in solidarity."],["calico","A calico cat has three colors."],
+["sputnik","Sputnik was the first satellite."],["cartridge","Replace the ink cartridge."],["segregation","Segregation was outlawed."],
+["tortillas","Warm the tortillas on the pan."],["civilian","He is a civilian, not a soldier."],["fertilizer","Add fertilizer to the garden.","fertiliser"],
+["apprentice","The apprentice learned from the carpenter."],["synthetic","The jacket is made of synthetic fabric."],["Caesar","Julius Caesar ruled Rome."],
+["glamorous","The movie star looked glamorous."],["salamanders","Salamanders live near streams."],["suspension","The bridge has a suspension design."],
+["sorceress","The sorceress cast a spell."],["fictitious","The story has a fictitious town."],["convertible","We drove a red convertible."],
+["snarkiness","His snarkiness annoyed everyone."],["singularity","The singularity is at the center of a black hole."],["collateral","The house was collateral for the loan."],
+["initiation","The club held an initiation ceremony."],["mascara","She applied mascara to her lashes."],["battalion","The battalion marched at dawn."],
+["precedent","The court case set a precedent."],["materialize","The plan never seemed to materialize.","materialise"],["magnesium","Magnesium burns with a bright flame."],
+["perimeter","Measure the perimeter of the yard."],["haddock","We had haddock for supper."],["optometrist","The optometrist checked my eyes."],
+["meticulous","She is meticulous about details."],["cosmodrome","The rocket left the cosmodrome."],["hypothermia","Cold water can cause hypothermia."],
+["schnauzer","A schnauzer has a bushy beard."],["megahertz","The radio station broadcasts at one hundred megahertz."],["regolith","Regolith covers the moon's surface."],
+["arthritis","Arthritis makes joints ache."],["persnickety","He is persnickety about his tea."],["insurrection","The insurrection was put down quickly."],
+["pheasants","Pheasants strutted across the field."],["pentathletes","Pentathletes compete in five events."],["Senegal","Dakar is the capital of Senegal."],
+["fascism","Fascism rose in the nineteen thirties."],["duende","The dancer performed with duende."],["predecessor","Her predecessor retired last year."],
+["Polaroid","He took a Polaroid photo."],["reservoir","The reservoir supplies the town's water."],["matrilineal","The clan is matrilineal."],
+["conscious","The patient is conscious now."],["arnica","Arnica cream soothes bruises."],["carrion","Vultures feed on carrion."],
+["glaucoma","Glaucoma affects the eyes."],["piteously","The puppy whined piteously."],["adrenaline","Adrenaline raced through her body."],
+["elliptical","The planet's orbit is elliptical."],["staccato","Play the notes staccato."],["iridium","Iridium is a rare metal."],
+["romerillo","Romerillo is a flowering plant."],["cemetery","The old cemetery is on the hill."],["dachshund","A dachshund has short legs."],
+["rendezvous","We will rendezvous at noon."],["Aeolus","Aeolus was the keeper of the winds."]
+];
+const POINTS = 10, CAPACITY = 5;
+const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const $ = id => document.getElementById(id);
+
+// ---------- speech ----------
+const synth = window.speechSynthesis;
+let voice = null;
+// Always Samantha (enhanced version if installed); fall back to any US English voice.
+function loadVoices(){
+  if(!synth) return;
+  const vs = synth.getVoices();
+  voice = vs.find(v => /samantha/i.test(v.name) && /enhanced|premium/i.test(v.name))
+       || vs.find(v => /samantha/i.test(v.name))
+       || vs.find(v => /^en[-_]US/i.test(v.lang))
+       || vs.find(v => /^en/i.test(v.lang)) || null;
+}
+if(synth){ loadVoices(); synth.onvoiceschanged = loadVoices; }
+function say(text, rate=1){
+  if(!synth){ $('hint').textContent = "No speech voice on this device."; return; }
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  if(voice) u.voice = voice;
+  u.rate = rate; u.pitch = 1; u.lang = voice ? voice.lang : "en-US";
+  synth.speak(u);
+}
+// Saying a lone word often sounds clipped; a short carrier phrase gives natural prosody.
+const sayWord = (w, rate=0.6) => say(`The word is: ${w}.`, rate);
+function spellOut(word){
+  if(!synth) return;
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(word.toUpperCase().split("").join(", ") + ". " + word + ".");
+  if(voice) u.voice = voice;
+  u.rate = 0.85; u.lang = voice ? voice.lang : "en-US";
+  synth.speak(u);
+}
+
+// ---------- state ----------
+let score = 0, streak = 0, fill = 0, best = 0;
+let queue = [], current = null, typed = "", locked = false;
+try { best = parseInt(localStorage.getItem("spellquest-best")||"0",10)||0; } catch(e){}
+
+function render(){
+  $('score').textContent = score; $('streak').textContent = streak; $('best').textContent = best;
+  const h = 48 * Math.min(fill, CAPACITY) / CAPACITY;      // bucket interior spans y=14..62
+  const liq = $('liquid'); liq.setAttribute('height', h); liq.setAttribute('y', 62 - h);
+  liq.setAttribute('fill', fill >= CAPACITY-1 ? '#ff6b6b' : fill >= CAPACITY-2 ? '#ffb347' : '#5ad1ff');
+  const slots = $('slots'); slots.innerHTML = "";
+  const n = current ? current[0].length : 0;
+  for(let i=0;i<n;i++){
+    const d = document.createElement('div');
+    d.className = 'slot' + (typed[i] ? ' filled' : '');
+    d.textContent = typed[i] || "";
+    slots.appendChild(d);
+  }
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function nextWord(){
+  if(!queue.length) queue = shuffle(WORDS.slice());   // every word once per cycle, random order
+  current = queue.pop(); typed = ""; locked = false;
+  $('verdict').textContent = ""; $('verdict').className = "verdict";
+  $('answer').textContent = "";
+  $('hint').textContent = `${current[0].length} letters · ${WORDS.length - queue.length} of ${WORDS.length}`;
+  render();
+  sayWord(current[0]);
+}
+function type(ch){ if(locked || !current || typed.length >= current[0].length) return; typed += ch; render(); }
+function back(){ if(locked) return; typed = typed.slice(0,-1); render(); }
+function submit(){
+  if(locked || !current || !typed.length) return;
+  locked = true;
+  const target = norm(current[0]), guess = norm(typed);
+  const accepted = [target, ...current.slice(2).map(norm)];
+  const slots = [...$('slots').children];
+  if(accepted.includes(guess)){
+    streak++; const bonus = Math.min(streak-1, 5) * 5;
+    score += POINTS + bonus;
+    if(score > best){ best = score; try{ localStorage.setItem("spellquest-best", String(best)); }catch(e){} }
+    if(fill > 0) fill--;
+    slots.forEach(s => s.classList.add('ok'));
+    $('verdict').textContent = "Correct!"; $('verdict').className = "verdict good";
+    fireworks();
+    say("Correct!", 1);
+    render();
+    setTimeout(nextWord, 2600);
+  } else {
+    streak = 0; fill++;
+    slots.forEach((s,i) => s.classList.add(guess[i] === target[i] ? 'ok' : 'no'));
+    $('verdict').textContent = "Not quite."; $('verdict').className = "verdict bad";
+    $('answer').innerHTML = `It's spelled <b>${current[0].toUpperCase().split("").join(" ")}</b>`;
+    const b = $('bucket'); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
+    spellOut(current[0]);
+    render();
+    if(fill >= CAPACITY) setTimeout(gameOver, 3000);
+    else setTimeout(nextWord, 3400);
+  }
+}
+function gameOver(){
+  $('over-score').textContent = `Score: ${score}`;
+  $('over-msg').textContent = score >= best && score > 0 ? "New best score! 🏆" : `Best so far: ${best}`;
+  $('over').hidden = false;
+}
+function reset(){
+  score = 0; streak = 0; fill = 0; queue = []; current = null; typed = "";
+  $('over').hidden = true; render(); nextWord();
+}
+
+// ---------- keyboard ----------
+const ROWS = ["qwertyuiop","asdfghjkl","zxcvbnm"];
+const keys = $('keys');
+ROWS.forEach((r,ri) => {
+  const row = document.createElement('div'); row.className = 'row';
+  if(ri === 2){ const b = mk("⌫ Delete","wide"); b.addEventListener('click', back); row.appendChild(b); }
+  for(const ch of r){ const k = mk(ch); k.addEventListener('click', () => type(ch)); row.appendChild(k); }
+  if(ri === 2){ const g = mk("GO ✓","wide go"); g.addEventListener('click', submit); row.appendChild(g); }
+  keys.appendChild(row);
+});
+function mk(label, extra=""){ const b = document.createElement('button'); b.className = 'key ' + extra; b.textContent = label; return b; }
+document.addEventListener('keydown', e => {
+  if(!$('start').hidden || !$('over').hidden) return;
+  if(/^[a-zA-Z]$/.test(e.key)) type(e.key.toLowerCase());
+  else if(e.key === "Backspace") back();
+  else if(e.key === "Enter") submit();
+  else if(e.key === " "){ e.preventDefault(); if(current) sayWord(current[0]); }
+});
+
+// ---------- controls ----------
+$('hear').addEventListener('click', () => current && sayWord(current[0]));
+$('slow').addEventListener('click', () => current && sayWord(current[0], 1));
+$('sentence').addEventListener('click', () => current && say(current[1], 0.95));
+function goFull(){
+  const el = document.documentElement;
+  try{
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if(req && !(document.fullscreenElement || document.webkitFullscreenElement)){
+      const p = req.call(el); if(p && p.catch) p.catch(()=>{});
+    }
+  }catch(e){}
+}
+$('begin').addEventListener('click', () => { goFull(); $('start').hidden = true; reset(); });
+$('again').addEventListener('click', () => { goFull(); reset(); });
+
+// ---------- fireworks ----------
+const cv = $('fx'), cx = cv.getContext('2d'); let rockets = [], sparks = [], raf = 0;
+const DPR = Math.min(devicePixelRatio || 1, 2);
+function sizeCanvas(){ cv.width = innerWidth * DPR; cv.height = innerHeight * DPR; }
+sizeCanvas(); addEventListener('resize', sizeCanvas);
+const PALETTES = [["#ffcf3f","#fff3b0","#ffa94d"],["#5ad1ff","#b3ecff","#7aa2ff"],["#ff6b9d","#ffc2d6","#ff6b6b"],["#4fd68a","#c6ffd9","#9bff7a"],["#c77dff","#e9d5ff","#ffffff"]];
+function fireworks(){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const n = 6 + Math.floor(Math.random()*3);
+  for(let i=0;i<n;i++){
+    const x = cv.width*(0.15 + Math.random()*0.7);
+    rockets.push({x, y: cv.height, vx:(Math.random()-0.5)*2*DPR, vy:-(13+Math.random()*6)*DPR, delay:i*9, pal:PALETTES[Math.floor(Math.random()*PALETTES.length)], trail:[]});
+  }
+  if(!raf) raf = requestAnimationFrame(tick);
+}
+function burst(r){
+  const count = 90 + Math.floor(Math.random()*50), ring = Math.random() < 0.4;
+  for(let i=0;i<count;i++){
+    const a = (i/count)*Math.PI*2 + Math.random()*0.1, sp = ring ? 7*DPR : (2+Math.random()*7)*DPR;
+    sparks.push({x:r.x, y:r.y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, c:r.pal[i%r.pal.length], life:60+Math.random()*40, max:100, s:(1.5+Math.random()*2)*DPR});
+  }
+}
+function tick(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  cx.globalCompositeOperation = 'lighter';
+  for(const r of rockets){
+    if(r.delay-- > 0) continue;
+    r.x += r.vx; r.y += r.vy; r.vy += 0.18*DPR;
+    r.trail.push([r.x,r.y]); if(r.trail.length > 8) r.trail.shift();
+    cx.strokeStyle = r.pal[0]; cx.lineWidth = 2*DPR; cx.beginPath();
+    r.trail.forEach(([x,y],i) => i ? cx.lineTo(x,y) : cx.moveTo(x,y)); cx.stroke();
+    if(r.vy > -2*DPR){ burst(r); r.dead = true; }
+  }
+  rockets = rockets.filter(r => !r.dead);
+  sparks = sparks.filter(p => p.life-- > 0);
+  for(const p of sparks){
+    p.x += p.vx; p.y += p.vy; p.vx *= 0.96; p.vy = p.vy*0.96 + 0.12*DPR;
+    cx.globalAlpha = Math.max(0, p.life/p.max); cx.fillStyle = p.c;
+    cx.beginPath(); cx.arc(p.x, p.y, p.s, 0, Math.PI*2); cx.fill();
+  }
+  cx.globalAlpha = 1; cx.globalCompositeOperation = 'source-over';
+  raf = (rockets.length || sparks.length) ? requestAnimationFrame(tick) : 0;
+  if(!raf) cx.clearRect(0,0,cv.width,cv.height);
+}
+
+render();
+</script>
+</body>
+</html>
