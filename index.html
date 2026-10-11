@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="sq-version" content="23">
-<meta name="sq-build" content="20261011181854">
+<meta name="sq-version" content="24">
+<meta name="sq-build" content="20261011183616">
 <title>Spell Quest</title>
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="favicon.png">
@@ -110,6 +110,20 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   .slots{gap:5px;min-height:calc(2*44px + 5px)}
   .slot{width:min(34px,calc((100vw - 32px - 9*5px)/10));height:44px;font-size:24px;border-radius:9px}
 .stage{flex-direction:column;align-items:stretch;gap:8px}.bucket{align-self:center}.bucket{flex-direction:row;padding:8px 14px}.bucket svg{width:56px}.stats{gap:12px}.key{height:54px;font-size:20px}.key.wide{font-size:12px}}
+/* iPad (tall tablet screens): spread out and enlarge; phones (≤600px wide) are unaffected */
+@media (min-width:601px) and (min-height:900px){
+  .top{padding-bottom:1.5vh}
+  .stage{align-items:center;gap:3vw}
+  .bucket{align-self:flex-start;margin-top:4vh}
+  .board{gap:3vh;padding-top:5vh}
+  .hint{font-size:22px}
+  .big{font-size:32px;padding:20px 44px}
+  .ghost{font-size:20px;padding:18px 28px}
+  .slots{gap:12px;min-height:calc(2*86px + 12px)}
+  .slot{width:62px;height:86px;font-size:48px;border-radius:14px}
+  .verdict{font-size:42px}
+  .answer{font-size:22px}
+}
 </style>
 </head>
 <body>
