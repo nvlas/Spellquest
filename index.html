@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="sq-build" content="20261011180725">
+<meta name="sq-build" content="20261011181126">
 <title>Spell Quest</title>
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="favicon.png">
@@ -55,6 +55,7 @@ textarea.field{min-height:220px;resize:vertical;line-height:1.5}
 #liquid{transition:y .5s ease,height .5s ease,fill .5s}
 .bucket.shake svg{animation:shake .5s}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px) rotate(-4deg)}40%{transform:translateX(5px) rotate(4deg)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.board>*{flex-shrink:0}
 .board{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:clamp(4px,3vh,40px);gap:clamp(10px,2vh,22px);text-align:center}
 .hint{color:var(--muted);font-size:clamp(15px,1.8vw,19px);max-width:36ch;text-wrap:balance;margin:0;height:1.4em;line-height:1.4;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .speak{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
@@ -99,7 +100,15 @@ canvas#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events
 .top,.stage,.keys{position:relative;z-index:1}
 canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
 @media (prefers-reduced-motion:reduce){.big,.key,.ghost,#liquid{transition:none}.verdict.good,.bucket.shake svg{animation:none}}
-@media (max-width:600px){.stage{flex-direction:column;align-items:stretch;gap:8px}.bucket{align-self:center}.bucket{flex-direction:row;padding:8px 14px}.bucket svg{width:56px}.stats{gap:12px}.key{height:54px;font-size:20px}.key.wide{font-size:12px}}
+@media (max-width:600px){.board{gap:8px;padding-top:4px}
+  .speak{gap:8px;flex-wrap:nowrap}
+  .big{font-size:19px;padding:11px 18px}
+  .ghost{font-size:14px;padding:11px 14px}
+  .verdict{font-size:24px}
+  .answer{font-size:15px;min-height:2.6em}
+  .slots{gap:5px;min-height:calc(2*44px + 5px)}
+  .slot{width:min(34px,calc((100vw - 32px - 9*5px)/10));height:44px;font-size:24px;border-radius:9px}
+.stage{flex-direction:column;align-items:stretch;gap:8px}.bucket{align-self:center}.bucket{flex-direction:row;padding:8px 14px}.bucket svg{width:56px}.stats{gap:12px}.key{height:54px;font-size:20px}.key.wide{font-size:12px}}
 </style>
 </head>
 <body>
