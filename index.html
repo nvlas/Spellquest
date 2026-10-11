@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="sq-version" content="22">
-<meta name="sq-build" content="20261011181453">
+<meta name="sq-version" content="23">
+<meta name="sq-build" content="20261011181854">
 <title>Spell Quest</title>
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="favicon.png">
@@ -61,11 +61,11 @@ textarea.field{min-height:220px;resize:vertical;line-height:1.5}
 .hint{color:var(--muted);font-size:clamp(15px,1.8vw,19px);max-width:36ch;text-wrap:balance;margin:0;height:1.4em;line-height:1.4;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .speak{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
 .big{background:var(--accent);color:var(--accent-fg);font-family:var(--display);font-weight:800;font-size:clamp(20px,2.6vw,28px);
-  padding:16px 30px;border-radius:999px;box-shadow:0 6px 0 #b98d00;transform:translateY(0);transition:transform .08s,box-shadow .08s}
-.big:active{transform:translateY(5px);box-shadow:0 1px 0 #b98d00}
+  padding:16px 30px;border-radius:999px}
+.big:active{opacity:.75}
 .ghost{background:#2b3669;color:var(--fg);font-weight:700;font-size:clamp(15px,1.8vw,18px);padding:14px 22px;border-radius:999px}
 .ghost:active{background:#394686}
-.big.speaking{transform:translateY(5px);box-shadow:0 1px 0 #b98d00;opacity:.55}
+.big.speaking{opacity:.55}
 .ghost.speaking{opacity:.55}
 .slots{display:flex;gap:clamp(6px,1vw,12px);flex-wrap:wrap;justify-content:center;align-content:center;max-width:100%;min-height:calc(2*clamp(46px,6.8vw,74px) + clamp(6px,1vw,12px))}
 .slot{width:clamp(34px,5.2vw,60px);height:clamp(46px,6.8vw,74px);border-radius:12px;background:#0f1430;border:2px dashed #3a4580;
@@ -547,7 +547,7 @@ $('wclose1').addEventListener('click', closeWords);
 $('wclose2').addEventListener('click', closeWords);
 
 function unlockSpeech(){ if(!synth) return; loadVoices(); try{ const u = new SpeechSynthesisUtterance(' '); u.volume = 0; synth.speak(u); }catch(e){} }
-$('begin').addEventListener('click', () => { unlockSpeech(); goFull(); $('start').hidden = true; reset(); });
+$('begin').addEventListener('click', () => { unlockSpeech(); goFull(); $('start').hidden = true; reset(); requestAnimationFrame(buildCave); });
 $('again').addEventListener('click', () => { goFull(); reset(); });
 
 // ---------- fireworks ----------
@@ -633,9 +633,15 @@ function buildCave(){
   // glowing crystal clusters along the walls
   const hues = ['#5ad1ff','#c77dff','#4fd68a','#ffcf3f'];
   crystals = [];
-  for(let i=0;i<14;i++){
-    const side = r() < .5, x = side ? r()*W*.18 : W - r()*W*.18, y = H*(.12 + r()*.75);
-    crystals.push({x, y, s:(10 + r()*18)*BDPR, c:hues[Math.floor(r()*hues.length)], ph:r()*6.28, n:2 + Math.floor(r()*3)});
+  const avoid = ['.top','#bucket','#hint','.speak','#slots','#verdict','#answer','#keys']
+    .map(q => document.querySelector(q)).filter(Boolean).map(e => e.getBoundingClientRect())
+    .filter(b => b.width && b.height).map(b => ({l:b.left*BDPR, r:b.right*BDPR, t:b.top*BDPR, b:b.bottom*BDPR}));
+  const open = (x, y, rad) => avoid.every(b => x+rad < b.l || x-rad > b.r || y+rad < b.t || y-rad > b.b);
+  for(let tries=0; crystals.length < 12 && tries < 400; tries++){
+    const x = r()*W, y = H*(.06 + r()*.9), sz = (10 + r()*18)*BDPR;
+    if(!open(x, y, sz*1.8)) continue;
+    const c = {x, y, s:sz, c:hues[Math.floor(r()*hues.length)], ph:r()*6.28, n:2 + Math.floor(r()*3)};
+    crystals.push(c);
   }
   motes = Array.from({length:40}, () => ({x:r()*W, y:r()*H, v:(.1 + r()*.35)*BDPR, a:r()*6.28, s:(.6 + r()*1.6)*BDPR}));
 }
