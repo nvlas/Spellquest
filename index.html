@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="sq-build" content="20261010224826">
+<meta name="sq-build" content="20261011172945">
 <title>Spell Quest</title>
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="favicon.png">
@@ -190,7 +190,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
       <button class="chip" data-level="master" aria-pressed="false">Master</button>
     </div>
     <button class="big" id="begin">▶ Start</button>
-    <p class="note">Turn your sound on. <span id="ver"></span></p>
+    <p class="note">Turn your sound on. No sound on iPhone? Turn off silent mode. <span id="ver"></span></p>
     <button class="ghost" id="mywords">✎ Word list</button>
   </div>
 </div>
@@ -316,13 +316,19 @@ function loadVoices(){
        || vs.find(v => /^en/i.test(v.lang)) || null;
 }
 if(synth){ loadVoices(); synth.onvoiceschanged = loadVoices; }
+// Safari can drop an utterance spoken right after cancel(), or get stuck "paused".
+function speakNow(u){
+  if(!synth) return;
+  try{ synth.resume(); }catch(e){}
+  if(synth.speaking || synth.pending){ synth.cancel(); setTimeout(() => synth.speak(u), 60); }
+  else synth.speak(u);
+}
 function say(text, rate=1){
   if(!synth){ $('hint').textContent = "No speech voice on this device."; return; }
-  synth.cancel();
   const u = new SpeechSynthesisUtterance(text);
   if(voice) u.voice = voice;
   u.rate = rate; u.pitch = 1; u.lang = voice ? voice.lang : "en-US";
-  synth.speak(u);
+  speakNow(u);
 }
 // Saying a lone word often sounds clipped; a short carrier phrase gives natural prosody.
 const sayWord = (w, rate=0.6) => say(`The word is: ${w}.`, rate);
@@ -333,7 +339,6 @@ function spellOut(word, done=()=>{}){
   const finish = () => { if(!finished){ finished = true; done(); } };
   setTimeout(finish, 4500 + word.length*900);
   if(!synth){ finish(); return; }
-  synth.cancel();
   const mk = (text, rate) => {
     const u = new SpeechSynthesisUtterance(text);
     if(voice) u.voice = voice;
@@ -345,7 +350,7 @@ function spellOut(word, done=()=>{}){
   const whole = mk(word + ".", 0.6);
   letters.onend = () => setTimeout(() => { if(!finished) synth.speak(whole); }, 900);   // short pause, then the whole word
   whole.onend = () => setTimeout(finish, 700);
-  synth.speak(letters);
+  speakNow(letters);
 }
 
 // ---------- state ----------
@@ -519,7 +524,8 @@ $('wdefault').addEventListener('click', useDefault);
 $('wclose1').addEventListener('click', closeWords);
 $('wclose2').addEventListener('click', closeWords);
 
-$('begin').addEventListener('click', () => { goFull(); $('start').hidden = true; reset(); });
+function unlockSpeech(){ if(!synth) return; loadVoices(); try{ const u = new SpeechSynthesisUtterance(' '); u.volume = 0; synth.speak(u); }catch(e){} }
+$('begin').addEventListener('click', () => { unlockSpeech(); goFull(); $('start').hidden = true; reset(); });
 $('again').addEventListener('click', () => { goFull(); reset(); });
 
 // ---------- fireworks ----------
