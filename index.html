@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="sq-version" content="26">
+<meta name="sq-build" content="20261020061234">
+<title>Spell Quest</title>
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="favicon.png">
+<meta name="apple-mobile-web-app-title" content="Spell Quest">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@500;700&display=swap">
+<style>
+/* Layout: one-screen arcade board. Score strip + bucket meter on top, word card in the middle, tile keyboard pinned to the bottom. Single committed "night arcade" look. */
+:root{
+  --bg:#141b3a; --board:#1e2752; --fg:#f6f1e3; --muted:#a9b0d6;
+  --accent:#ffcf3f; --accent-fg:#2a1d00;
+  --tile:#f6f1e3; --tile-fg:#1b2142; --tile-shadow:#bfb49a;
+  --good:#4fd68a; --bad:#ff6b6b; --water:#5ad1ff; --water-hot:#ff6b6b;
+  --display:"Baloo 2","Arial Rounded MT Bold",system-ui,sans-serif;
+  --body:"Nunito",system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-weight:500;
+  display:flex;flex-direction:column;box-sizing:border-box;
+  padding-top:calc(10px + env(safe-area-inset-top,0px));padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
+  padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+button,select{font-family:inherit;touch-action:manipulation}
+button{cursor:pointer;border:0}
+button:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:clamp(22px,3vw,30px);letter-spacing:.5px;color:var(--accent);margin:0}
+.stats{display:flex;gap:18px;font-variant-numeric:tabular-nums;align-items:center}
+.stat{display:flex;flex-direction:column;align-items:center;line-height:1.1}
+.stat b{font-family:var(--display);font-size:clamp(20px,2.6vw,28px);font-weight:800}
+.stat span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.stage{flex:1;min-height:0;display:flex;align-items:flex-start;gap:clamp(12px,3vw,40px)}
+.bucket{flex:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding:clamp(10px,1.5vw,18px);border-radius:22px;background:var(--board)}
+.bucket svg{width:clamp(90px,15vw,180px);height:auto;display:block;overflow:visible}
+.bucket .blabel{font-family:var(--display);font-weight:800;font-size:clamp(15px,1.8vw,20px);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.bucket .bcount{font-family:var(--display);font-weight:800;font-size:clamp(20px,2.6vw,30px);color:var(--fg);font-variant-numeric:tabular-nums;line-height:1}
+.field{width:100%;box-sizing:border-box;background:#0f1430;color:var(--fg);border:2px solid #3a4580;border-radius:14px;padding:12px 14px;font:inherit;font-size:17px;-webkit-user-select:text;user-select:text}
+textarea.field{min-height:220px;resize:vertical;line-height:1.5}
+.btnrow{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+.panel .err{color:var(--bad);font-weight:700;min-height:1.4em;margin:10px 0 0}
+.panel .ghost{margin-top:4px}
+.hero{display:block;width:100%;max-width:380px;height:auto;margin:6px auto 14px}
+.levels{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:0 0 20px}
+.chip{background:transparent;color:var(--muted);border:2px solid #3a4580;border-radius:999px;padding:10px 18px;font-weight:800;font-size:clamp(15px,1.8vw,18px)}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+#liquid{transition:y .5s ease,height .5s ease,fill .5s}
+.bucket.shake svg{animation:shake .5s}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px) rotate(-4deg)}40%{transform:translateX(5px) rotate(4deg)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.board>*{flex-shrink:0}
+.board{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:clamp(4px,3vh,40px);gap:clamp(10px,2vh,22px);text-align:center}
+.hint{color:var(--muted);font-size:clamp(15px,1.8vw,19px);max-width:36ch;text-wrap:balance;margin:0;height:1.4em;line-height:1.4;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.speak{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.big{background:var(--accent);color:var(--accent-fg);font-family:var(--display);font-weight:800;font-size:clamp(20px,2.6vw,28px);
+  padding:16px 30px;border-radius:999px}
+.big:active{opacity:.75}
+.ghost{background:#2b3669;color:var(--fg);font-weight:700;font-size:clamp(15px,1.8vw,18px);padding:14px 22px;border-radius:999px}
+.ghost:active{background:#394686}
+.big.speaking{opacity:.55}
+.ghost.speaking{opacity:.55}
+.slots{display:flex;gap:clamp(6px,1vw,12px);flex-wrap:wrap;justify-content:center;align-content:center;max-width:100%;min-height:calc(2*clamp(46px,6.8vw,74px) + clamp(6px,1vw,12px))}
+.slot{width:clamp(34px,5.2vw,60px);height:clamp(46px,6.8vw,74px);border-radius:12px;background:#0f1430;border:2px dashed #3a4580;
+  display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:clamp(22px,3.6vw,40px);text-transform:uppercase;color:var(--fg)}
+.slot.filled{border-style:solid;border-color:#5a67b0;background:#262f63}
+.slot.ok{background:var(--good);color:#063d20;border-color:var(--good)}
+.slot.no{background:var(--bad);color:#4a0d0d;border-color:var(--bad)}
+.verdict{font-family:var(--display);font-weight:800;font-size:clamp(26px,3.6vw,40px);height:1.3em;line-height:1.3;margin:0}
+.verdict.good{color:var(--good);animation:pop .5s} .verdict.bad{color:var(--bad)}
+@keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+.answer{font-size:clamp(16px,2vw,20px);color:var(--muted);margin:0;min-height:2.8em;max-width:36ch;text-wrap:balance}
+.answer b{color:var(--fg);letter-spacing:.06em}
+.keys{display:flex;flex-direction:column;gap:clamp(6px,1vh,10px)}
+.row{display:flex;gap:clamp(4px,.7vw,10px);justify-content:center}
+.key{flex:1 1 0;max-width:clamp(52px,9.6vw,120px);height:clamp(60px,10vh,104px);border-radius:12px;background:var(--tile);color:var(--tile-fg);
+  font-family:var(--display);font-weight:800;font-size:clamp(24px,3.6vw,42px);text-transform:uppercase;box-shadow:0 4px 0 var(--tile-shadow);
+}
+.key:active,.key.pressed{transform:translateY(3px);box-shadow:0 1px 0 var(--tile-shadow)}
+.key.wide{flex:1.6 1 0;max-width:clamp(84px,15vw,180px);font-size:clamp(15px,2vw,22px);letter-spacing:.06em}
+.key.go{background:var(--good);color:#063d20;box-shadow:0 4px 0 #2d9a5c}
+.key.go:active{box-shadow:0 1px 0 #2d9a5c}
+.overlay{position:fixed;inset:0;padding-top:calc(24px + env(safe-area-inset-top,0px)) !important;background:rgba(10,14,34,.45);display:flex;align-items:center;justify-content:center;padding:24px;z-index:5;overflow:auto}
+.panel{background:var(--board);border-radius:24px;padding:clamp(24px,4vw,44px);max-width:560px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.panel h2{font-family:var(--display);font-weight:800;font-size:clamp(34px,6vw,56px);margin:0 0 8px;color:var(--accent);text-wrap:balance;line-height:1}
+.panel p{color:var(--muted);font-size:clamp(16px,2vw,19px);margin:0 0 18px;text-wrap:balance}
+.panel .big{margin-top:6px}
+.score-line{font-family:var(--display);font-size:clamp(22px,3vw,30px);font-weight:800;margin:0 0 6px;color:var(--fg)}
+.voicebox{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin:0 0 18px}
+.voicebox label{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+select{background:#0f1430;color:var(--fg);border:2px solid #3a4580;border-radius:12px;padding:10px 12px;font-size:15px;max-width:min(100%,280px)}
+.note{font-size:13px;color:var(--muted);margin-top:14px}
+canvas#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.top,.stage,.keys{position:relative;z-index:1}
+canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
+@media (prefers-reduced-motion:reduce){.big,.key,.ghost,#liquid{transition:none}.verdict.good,.bucket.shake svg{animation:none}}
+@media (max-width:600px){.board{gap:8px;padding-top:4px}
+  .speak{gap:8px;flex-wrap:nowrap}
+  .big{font-size:19px;padding:11px 18px}
+  .ghost{font-size:14px;padding:11px 14px}
+  .verdict{font-size:24px}
+  .answer{font-size:15px;min-height:2.6em}
+  .slots{gap:5px;min-height:calc(2*44px + 5px)}
+  .slot{width:min(34px,calc((100vw - 32px - 9*5px)/10));height:44px;font-size:24px;border-radius:9px}
+.stage{flex-direction:column;align-items:stretch;gap:8px}.bucket{align-self:center}.bucket{flex-direction:row;padding:8px 14px}.bucket svg{width:56px}.stats{gap:12px}.key{height:54px;font-size:20px}.key.wide{font-size:12px}}
+/* iPad (tall tablet screens): spread out and enlarge; phones (≤600px wide) are unaffected */
+@media (min-width:601px) and (min-height:900px){
+  .top{padding-bottom:1.5vh}
+  .stage{align-items:center;gap:3vw}
+  .bucket{align-self:flex-start;margin-top:4vh}
+  .board{gap:3vh;padding-top:5vh}
+  .hint{font-size:22px}
+  .big{font-size:32px;padding:20px 44px}
+  .ghost{font-size:20px;padding:18px 28px}
+  .slots{gap:12px;min-height:calc(2*86px + 12px)}
+  .slot{width:62px;height:86px;font-size:48px;border-radius:14px}
+  .verdict{font-size:42px}
+  .answer{font-size:22px}
+}
+</style>
+</head>
+<body>
+
+<canvas id="bg" aria-hidden="true"></canvas>
+
+<header class="top">
+  <h1 class="brand">Spell Quest</h1>
+  <div class="stats">
+    <div class="stat"><b id="score">0</b><span>Score</span></div>
+    <div class="stat"><b id="streak">0</b><span>Streak</span></div>
+    <div class="stat"><b id="best">0</b><span>Best</span></div>
+  </div>
+</header>
+
+<div class="stage">
+  <div class="bucket" id="bucket" aria-label="Bucket">
+    <svg viewBox="0 0 64 70" aria-hidden="true">
+      <defs><clipPath id="bclip"><path d="M8 14 L56 14 L50 62 Q32 68 14 62 Z"/></clipPath></defs>
+      <path d="M8 14 L56 14 L50 62 Q32 68 14 62 Z" fill="#0f1430"/>
+      <rect id="liquid" clip-path="url(#bclip)" x="0" y="64" width="64" height="0" fill="#5ad1ff"/>
+      <path d="M8 14 L56 14 L50 62 Q32 68 14 62 Z" fill="none" stroke="#a9b0d6" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M14 14 Q32 -6 50 14" fill="none" stroke="#a9b0d6" stroke-width="3" stroke-linecap="round"/>
+      <rect x="4" y="12" width="56" height="5" rx="2" fill="#a9b0d6"/>
+    </svg>
+    <span class="bcount" id="bcount">3 / 6</span>
+    <span class="blabel">Bucket</span>
+  </div>
+<main class="board">
+  <p class="hint" id="hint">Tap “Hear word”, then spell it with the tiles.</p>
+  <div class="speak">
+    <button class="big" id="hear">🔊 Hear word</button>
+    <button class="ghost" id="sentence">Use it in a sentence</button>
+  </div>
+  <div class="slots" id="slots" aria-live="polite"></div>
+  <p class="verdict" id="verdict"></p>
+  <p class="answer" id="answer"></p>
+</main>
+</div>
+
+<section class="keys" id="keys" aria-label="Letter tiles"></section>
+
+<div class="overlay" id="start">
+  <div class="panel">
+    <h2>Spell Quest</h2>
+    <svg class="hero" viewBox="0 0 360 172" role="img" aria-label="A kid stuck in the crystal cave, holding a tablet, saying: I brought my device so I can play this. Thank goodness.">
+      <defs>
+        <radialGradient id="hglow" cx="112" cy="122" r="70" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#5ad1ff" stop-opacity=".45"/><stop offset="1" stop-color="#5ad1ff" stop-opacity="0"/></radialGradient>
+        <filter id="hsoft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <rect x="0" y="0" width="360" height="172" rx="18" fill="#0f1430"/>
+      <path fill="#1b2350" d="M0 18Q0 0 18 0H342Q360 0 360 18V20L340 26 332 52 320 24 296 30 286 58 274 26 246 22 236 46 226 22 150 24 140 50 128 22 96 26 86 56 74 24 40 28 30 50 20 22 0 26Z"/>
+      <circle cx="112" cy="122" r="70" fill="url(#hglow)"/>
+      <!-- fallen boulders blocking the way out -->
+      <path fill="#2b3669" d="M8 172V128Q20 104 44 112Q58 92 74 116Q80 130 72 172Z"/>
+      <path fill="#232c5c" d="M300 172Q292 140 316 128Q336 112 352 132Q360 140 360 154V172Z"/>
+      <path fill="#0a0e24" d="M0 172V160Q90 146 180 152Q270 146 360 160V172Z"/>
+      <!-- crystals -->
+      <g filter="url(#hsoft)">
+        <path d="M28 160 L20 128 L28 116 L36 128Z" fill="#c77dff"/>
+        <path d="M44 162 L38 140 L44 132 L50 140Z" fill="#5ad1ff"/>
+        <path d="M326 160 L318 132 L326 120 L334 132Z" fill="#5ad1ff"/>
+        <path d="M342 162 L337 144 L342 136 L347 144Z" fill="#c77dff"/>
+      </g>
+      <!-- kid sitting -->
+      <g>
+        <path d="M96 150 Q100 140 112 140 L136 144 Q142 146 140 152 L138 156 Q120 152 106 156Z" fill="#3a4a9a"/>
+        <ellipse cx="141" cy="155" rx="8" ry="4" fill="#f6f1e3"/>
+        <rect x="94" y="110" width="30" height="40" rx="12" fill="#ff6b6b"/>
+        <circle cx="108" cy="94" r="17" fill="#f3c9a0"/>
+        <path d="M91 92 Q92 74 108 74 Q125 74 125 90 Q118 82 108 84 Q98 82 91 92Z" fill="#4a2f22"/>
+        <circle cx="102" cy="95" r="2" fill="#1b2142"/><circle cx="114" cy="95" r="2" fill="#1b2142"/>
+        <path d="M102 102 Q108 107 114 102" stroke="#1b2142" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <!-- tablet with glow -->
+        <rect x="112" y="116" width="26" height="19" rx="3" fill="#1b2142"/>
+        <rect x="115" y="119" width="20" height="13" rx="1.5" fill="#5ad1ff" filter="url(#hsoft)"/>
+        <path d="M98 122 Q106 132 116 128" stroke="#f3c9a0" stroke-width="6" fill="none" stroke-linecap="round"/>
+        <path d="M122 118 Q128 126 134 130" stroke="#f3c9a0" stroke-width="6" fill="none" stroke-linecap="round"/>
+      </g>
+      <!-- speech bubble -->
+      <path d="M164 22 H338 Q348 22 348 32 V92 Q348 102 338 102 H184 L140 92 L168 88 Q164 86 164 80 V32 Q164 22 174 22Z" fill="#f6f1e3"/>
+      <text x="256" y="46" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="800" font-size="14.5" fill="#1b2142">I brought my device</text>
+      <text x="256" y="66" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="800" font-size="14.5" fill="#1b2142">so I can play this.</text>
+      <text x="256" y="88" text-anchor="middle" font-family="'Baloo 2', system-ui, sans-serif" font-weight="800" font-size="17" fill="#c06a00">Thank goodness.</text>
+    </svg>
+    <p>Deep in the Echo Caves, <span id="wcount">150</span> secret words are locked away. A voice whispers each one. Spell it right and fireworks blast the lock open. Spell it wrong and a drop falls into your bucket. If the bucket overflows, the caves flood. Spell all of them to escape!</p>
+    <div class="levels" id="levels" role="group" aria-label="Level">
+      <button class="chip" data-level="beginner" aria-pressed="true">Beginner</button>
+      <button class="chip" data-level="advanced" aria-pressed="false">Advanced</button>
+      <button class="chip" data-level="master" aria-pressed="false">Master</button>
+    </div>
+    <button class="big" id="begin">▶ Start</button>
+    <p class="note">Turn your sound on. No sound on iPhone? Turn off silent mode. <span id="ver"></span></p>
+    <button class="ghost" id="mywords">✎ Word list</button>
+  </div>
+</div>
+
+<div class="overlay" id="over" hidden>
+  <div class="panel">
+    <h2 id="over-title">The caves flooded!</h2>
+    <p class="score-line" id="over-score"></p>
+    <p id="over-msg"></p>
+    <button class="big" id="again">↻ Try again</button>
+  </div>
+</div>
+
+<div class="overlay" id="words" hidden>
+  <div class="panel">
+    <h2>Word list</h2>
+    <div id="lockstep">
+      <p>Grown-ups only. Enter the password.</p>
+      <input class="field" id="pw" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Password">
+      <p class="err" id="pwerr"></p>
+      <div class="btnrow">
+        <button class="big" id="unlock">Unlock</button>
+        <button class="ghost" id="wclose1">Cancel</button>
+      </div>
+    </div>
+    <div id="editstep" hidden>
+      <p>One word per line (commas also work). Saved on this device.</p>
+      <textarea class="field" id="wlist" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Word list"></textarea>
+      <p class="err" id="wlerr"></p>
+      <div class="btnrow">
+        <button class="big" id="wsave">Save</button>
+        <button class="ghost" id="wdefault">Use original list</button>
+        <button class="ghost" id="wclose2">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<canvas id="fx"></canvas>
+
+<script>
+// ---------- word bank: [word, sentence, accepted alternates...] ----------
+const DEFAULT_WORDS = [
+["pickle", "I like a crunchy pickle with my lunch."],
+["scissors", "Use the scissors to cut the paper."],
+["giggle", "The baby began to giggle."],
+["sneaker", "I lost one sneaker in the mud."],
+["pancake", "Dad flipped the pancake high."],
+["rainbow", "A rainbow appeared after the rain."],
+["lantern", "We lit a lantern at the campsite."],
+["blanket", "Wrap up in a warm blanket."],
+["pumpkin", "We picked a big orange pumpkin."],
+["hiccup", "I can't stop this hiccup."],
+["vinegar", "Vinegar smells very sour."],
+["puddle", "She jumped right into the puddle."],
+["sandwich", "I made a cheese sandwich."],
+["whisper", "Please whisper in the library."],
+["thunder", "The thunder was very loud."],
+["ladder", "Climb the ladder slowly."],
+["napkin", "Wipe your mouth with a napkin."],
+["umbrella", "Take an umbrella, it's raining."],
+["necklace", "She wore a shiny necklace."],
+["compass", "A compass points north."],
+["harvest", "The farmers bring in the harvest."],
+["meadow", "Flowers bloom in the meadow."],
+["cactus", "Don't touch the prickly cactus."],
+["penguin", "A penguin cannot fly."],
+["dolphin", "The dolphin jumped out of the water."],
+["squirrel", "A squirrel hid an acorn."],
+["skeleton", "Your skeleton holds you up."],
+["marble", "He rolled a blue marble."],
+["tickle", "Don't tickle my feet!"],
+["hamster", "My hamster runs on a wheel."],
+["balcony", "We waved from the balcony."],
+["riddle", "Can you solve this riddle?"],
+["sparkle", "The stars sparkle at night."],
+["feather", "A feather floated down."],
+["helmet", "Wear a helmet on your bike."],
+["jigsaw", "We finished the jigsaw puzzle."],
+["mitten", "I lost my left mitten."],
+["orchard", "Apples grow in the orchard."],
+["pebble", "She skipped a pebble across the lake."],
+["festival", "The town had a summer festival."],
+["saddle", "Put the saddle on the horse."],
+["trumpet", "He plays the trumpet in the band."],
+["velvet", "The cape was soft velvet."],
+["walrus", "A walrus has long tusks."],
+["yogurt", "I had strawberry yogurt."],
+["zipper", "My jacket zipper is stuck."],
+["gravel", "The path is covered in gravel."],
+["cobweb", "A spider spun a cobweb."],
+["Thursday", "Soccer practice is on Thursday."],
+["oatmeal", "I eat oatmeal for breakfast."],
+["abundant", "Apples are abundant in the fall."],
+["ambulance", "The ambulance raced to the hospital."],
+["avalanche", "Snow fell in a huge avalanche."],
+["barbecue", "We had a barbecue in the park."],
+["boulevard", "We walked down the wide boulevard."],
+["cafeteria", "We eat lunch in the cafeteria."],
+["caterpillar", "The caterpillar became a butterfly."],
+["cinnamon", "Cinnamon makes the cookies tasty."],
+["coyote", "A coyote howled at the moon."],
+["delicious", "This soup is delicious."],
+["disguise", "He wore a mustache as a disguise."],
+["encyclopedia", "Look it up in the encyclopedia."],
+["enormous", "The whale was enormous."],
+["escalator", "We rode the escalator upstairs."],
+["fabulous", "What a fabulous party!"],
+["flamingo", "A flamingo stands on one leg."],
+["frequency", "Tune the radio to the right frequency."],
+["gorgeous", "The sunset was gorgeous."],
+["graffiti", "Someone painted graffiti on the wall."],
+["hemisphere", "We live in the northern hemisphere."],
+["hibernate", "Bears hibernate in winter."],
+["hurricane", "The hurricane brought strong winds."],
+["immigrant", "My grandpa came here as an immigrant."],
+["jealous", "Don't be jealous of your sister."],
+["kangaroo", "A kangaroo carries its baby in a pouch."],
+["limousine", "They rode in a long limousine."],
+["magnificent", "The castle was magnificent."],
+["marathon", "She ran a marathon."],
+["mosquito", "A mosquito bit my arm."],
+["nervous", "I feel nervous before a test."],
+["Nebraska", "Nebraska has lots of corn fields."],
+["obstacle", "Jump over the obstacle."],
+["orchestra", "The orchestra played a symphony."],
+["parachute", "The parachute opened in the sky."],
+["pharmacy", "Get the medicine at the pharmacy."],
+["porcupine", "A porcupine has sharp quills."],
+["quarantine", "The sick puppy stayed in quarantine."],
+["raccoon", "A raccoon opened the trash can."],
+["recipe", "Follow the recipe for the cake."],
+["receive", "Did you receive my letter?"],
+["scavenger", "We went on a scavenger hunt."],
+["sincerely", "She signed the letter sincerely."],
+["souvenir", "I bought a souvenir on vacation."],
+["spaghetti", "We had spaghetti for dinner."],
+["telescope", "We saw Saturn through a telescope."],
+["thermometer", "The thermometer shows it is cold."],
+["tremendous", "The team made a tremendous effort."],
+["vacuum", "Please vacuum the rug."],
+["voyage", "The ship began its long voyage."],
+["wrestler", "The wrestler won the match."],
+["accommodate", "The hotel can accommodate four guests."],
+["acquaintance", "He is an old acquaintance of mine."],
+["archaeology", "Archaeology is the study of ancient things.", "archeology"],
+["bouillon", "Mom added bouillon to the soup."],
+["camouflage", "A chameleon uses camouflage to hide."],
+["chandelier", "A crystal chandelier hung from the ceiling."],
+["chauffeur", "The chauffeur opened the car door."],
+["chrysanthemum", "She planted a yellow chrysanthemum."],
+["colonel", "The colonel led the troops."],
+["conscientious", "She is a conscientious student."],
+["croissant", "I ate a buttery croissant."],
+["dilemma", "Choosing a pet was a dilemma."],
+["entrepreneur", "An entrepreneur starts a new company."],
+["exhilarate", "Roller coasters exhilarate me."],
+["fluorescent", "The fluorescent light buzzed."],
+["fuchsia", "Her dress was bright fuchsia."],
+["gnarled", "The old tree had gnarled branches."],
+["guarantee", "I guarantee you will like it."],
+["hierarchy", "The king is at the top of the hierarchy."],
+["idiosyncrasy", "Wearing two hats is his idiosyncrasy."],
+["irresistible", "The cookies smelled irresistible."],
+["kaleidoscope", "Look through the kaleidoscope."],
+["labyrinth", "We got lost in the labyrinth."],
+["lieutenant", "The lieutenant gave an order."],
+["maneuver", "The pilot made a tricky maneuver.", "manoeuvre"],
+["mayonnaise", "Put mayonnaise on the sandwich."],
+["millennium", "A millennium is one thousand years."],
+["mischievous", "The mischievous cat knocked over the vase."],
+["Mississippi", "The Mississippi is a long river."],
+["nauseous", "The boat ride made me nauseous."],
+["occurrence", "Snow in July is a rare occurrence."],
+["onomatopoeia", "Buzz is an example of onomatopoeia."],
+["pneumonia", "Pneumonia makes it hard to breathe."],
+["pharaoh", "The pharaoh ruled ancient Egypt."],
+["questionnaire", "Please fill out the questionnaire."],
+["reconnaissance", "The scouts went on reconnaissance."],
+["rhinoceros", "A rhinoceros has a horn on its nose."],
+["silhouette", "We saw his silhouette in the window."],
+["sovereign", "The queen is the sovereign of the land."],
+["stethoscope", "The doctor used a stethoscope."],
+["surveillance", "The camera keeps the store under surveillance."],
+["symmetrical", "A butterfly's wings are symmetrical."],
+["tyrannosaurus", "A tyrannosaurus had tiny arms."],
+["ukulele", "He strummed a ukulele."],
+["ventriloquist", "The ventriloquist made the puppet talk."],
+["Wednesday", "Art class is on Wednesday."],
+["xylophone", "She played a song on the xylophone."],
+["yacht", "They sailed a yacht across the bay."],
+["zucchini", "We grew zucchini in the garden."],
+["pterodactyl", "A pterodactyl flew over the cliffs."]
+];
+const POINTS = 10, CAPACITY = 6, START_FILL = 3, ROUND = 25;
+const BEGINNER = ["pickle", "scissors", "giggle", "sneaker", "pancake", "rainbow", "lantern", "blanket", "pumpkin", "hiccup", "vinegar", "puddle", "sandwich", "whisper", "thunder", "ladder", "napkin", "umbrella", "necklace", "compass", "harvest", "meadow", "cactus", "penguin", "dolphin", "squirrel", "skeleton", "marble", "tickle", "hamster", "balcony", "riddle", "sparkle", "feather", "helmet", "jigsaw", "mitten", "orchard", "pebble", "festival", "saddle", "trumpet", "velvet", "walrus", "yogurt", "zipper", "gravel", "cobweb", "Thursday", "oatmeal"];
+const ADVANCED = ["abundant", "ambulance", "avalanche", "barbecue", "boulevard", "cafeteria", "caterpillar", "cinnamon", "coyote", "delicious", "disguise", "encyclopedia", "enormous", "escalator", "fabulous", "flamingo", "frequency", "gorgeous", "graffiti", "hemisphere", "hibernate", "hurricane", "immigrant", "jealous", "kangaroo", "limousine", "magnificent", "marathon", "mosquito", "nervous", "Nebraska", "obstacle", "orchestra", "parachute", "pharmacy", "porcupine", "quarantine", "raccoon", "recipe", "receive", "scavenger", "sincerely", "souvenir", "spaghetti", "telescope", "thermometer", "tremendous", "vacuum", "voyage", "wrestler"];
+const levelOf = w => BEGINNER.includes(w) ? "beginner" : ADVANCED.includes(w) ? "advanced" : "master";
+let CUSTOM = null, level = "beginner", WORDS = [];
+try{
+  const saved = JSON.parse(localStorage.getItem("spellquest-words") || "null");
+  if(Array.isArray(saved) && saved.length) CUSTOM = saved.map(w => [w]);
+  const lv = localStorage.getItem("spellquest-level"); if(["beginner","advanced","master"].includes(lv)) level = lv;
+}catch(e){}
+function applyWords(){
+  WORDS = CUSTOM || DEFAULT_WORDS.filter(w => levelOf(w[0]) === level);
+  queue = [];
+}
+const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const $ = id => document.getElementById(id);
+
+// ---------- speech ----------
+const synth = window.speechSynthesis;
+let voice = null;
+// Always Samantha (enhanced version if installed); fall back to any US English voice.
+function loadVoices(){
+  if(!synth) return;
+  const vs = synth.getVoices();
+  voice = vs.find(v => /samantha/i.test(v.name) && /enhanced|premium/i.test(v.name))
+       || vs.find(v => /samantha/i.test(v.name))
+       || vs.find(v => /^en[-_]US/i.test(v.lang))
+       || vs.find(v => /^en/i.test(v.lang)) || null;
+}
+if(synth){ loadVoices(); synth.onvoiceschanged = loadVoices; }
+// Safari can drop an utterance spoken right after cancel(), or get stuck "paused".
+function speakNow(u){
+  if(!synth) return;
+  try{ synth.resume(); }catch(e){}
+  if(synth.speaking || synth.pending){ synth.cancel(); setTimeout(() => synth.speak(u), 60); }
+  else synth.speak(u);
+}
+// Show a button as pressed while its words are being read out.
+const clearSpeaking = () => document.querySelectorAll('.speaking').forEach(e => e.classList.remove('speaking'));
+function say(text, rate=1, btn=null){
+  clearSpeaking();
+  if(!synth){ $('hint').textContent = "No speech voice on this device."; return; }
+  const u = new SpeechSynthesisUtterance(text);
+  if(voice) u.voice = voice;
+  u.rate = rate; u.pitch = 1; u.lang = voice ? voice.lang : "en-US";
+  if(btn){
+    btn.classList.add('speaking');
+    const off = () => btn.classList.remove('speaking');
+    u.onend = off; u.onerror = off;
+    setTimeout(off, 1500 + text.length*120/rate);   // in case the device never reports the end
+  }
+  speakNow(u);
+}
+// Saying a lone word often sounds clipped; a short carrier phrase gives natural prosody.
+const sayWord = (w, rate=0.6) => say(`The word is: ${w}.`, rate, $('hear'));
+// Spell the word letter by letter, then call done() once the voice has finished
+// (with a length-based safety timeout in case the device never reports the end).
+function spellOut(word, done=()=>{}){
+  clearSpeaking();
+  let finished = false;
+  const finish = () => { if(!finished){ finished = true; done(); } };
+  setTimeout(finish, 4500 + word.length*900);
+  if(!synth){ finish(); return; }
+  const mk = (text, rate) => {
+    const u = new SpeechSynthesisUtterance(text);
+    if(voice) u.voice = voice;
+    u.rate = rate; u.lang = voice ? voice.lang : "en-US";
+    u.onerror = finish;
+    return u;
+  };
+  const letters = mk(word.toUpperCase().split("").join(", ") + ".", 0.85);
+  const whole = mk(word + ".", 0.6);
+  letters.onend = () => setTimeout(() => { if(!finished) synth.speak(whole); }, 900);   // short pause, then the whole word
+  whole.onend = () => setTimeout(finish, 700);
+  speakNow(letters);
+}
+
+// ---------- state ----------
+let score = 0, streak = 0, fill = START_FILL, best = 0;
+let queue = [], current = null, typed = "", locked = false, asked = 0;
+try { best = parseInt(localStorage.getItem("spellquest-best")||"0",10)||0; } catch(e){}
+
+function render(){
+  $('score').textContent = score; $('streak').textContent = streak; $('best').textContent = best;
+  const h = 48 * Math.min(fill, CAPACITY) / CAPACITY;      // bucket interior spans y=14..62
+  const liq = $('liquid'); liq.setAttribute('height', h); liq.setAttribute('y', 62 - h);
+  $('bcount').textContent = `${Math.min(fill, CAPACITY)} / ${CAPACITY}`;
+  liq.setAttribute('fill', fill >= CAPACITY-1 ? '#ff6b6b' : fill >= CAPACITY-2 ? '#ffb347' : '#5ad1ff');
+  const slots = $('slots');
+  const n = current ? current[0].length : 0;
+  if(slots.children.length !== n || slots.dataset.word !== (current ? current[0] : "")){
+    slots.innerHTML = ""; slots.dataset.word = current ? current[0] : "";
+    for(let i=0;i<n;i++){ const d = document.createElement('div'); d.className = 'slot'; slots.appendChild(d); }
+  }
+  for(let i=0;i<n;i++){
+    const d = slots.children[i], ch = typed[i] || "";
+    if(d.textContent !== ch) d.textContent = ch;
+    if(!d.classList.contains('ok') && !d.classList.contains('no')) d.className = 'slot' + (ch ? ' filled' : '');
+  }
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function nextWord(){
+  const roundLen = Math.min(ROUND, WORDS.length);
+  if(asked >= roundLen){ win(); return; }
+  if(!queue.length) queue = shuffle(WORDS.slice());   // random order, no repeats within a game
+  current = queue.pop(); asked++; typed = ""; locked = false;
+  $('verdict').textContent = ""; $('verdict').className = "verdict";
+  $('answer').textContent = "";
+  $('sentence').hidden = !current[1];
+  $('hint').textContent = `${current[0].length} letters · word ${asked} of ${roundLen}`;
+  render();
+  sayWord(current[0]);
+}
+function type(ch){ if(locked || !current || typed.length >= current[0].length) return; typed += ch; render(); }
+function back(){ if(locked) return; typed = typed.slice(0,-1); render(); }
+function submit(){
+  if(locked || !current || !typed.length) return;
+  locked = true;
+  const target = norm(current[0]), guess = norm(typed);
+  const accepted = [target, ...current.slice(2).map(norm)];
+  const slots = [...$('slots').children];
+  if(accepted.includes(guess)){
+    streak++; const bonus = Math.min(streak-1, 5) * 5;
+    score += POINTS + bonus;
+    if(score > best){ best = score; try{ localStorage.setItem("spellquest-best", String(best)); }catch(e){} }
+    if(fill > 0) fill--;
+    slots.forEach(s => s.classList.add('ok'));
+    $('verdict').textContent = "Correct!"; $('verdict').className = "verdict good";
+    fireworks();
+    say("Correct!", 1);
+    render();
+    setTimeout(nextWord, 2600);
+  } else {
+    streak = 0; fill++;
+    slots.forEach((s,i) => s.classList.add(guess[i] === target[i] ? 'ok' : 'no'));
+    $('verdict').textContent = "Not quite."; $('verdict').className = "verdict bad";
+    $('answer').innerHTML = `It's spelled <b>${current[0].toUpperCase().split("").join(" ")}</b>`;
+    const b = $('bucket'); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
+    render();
+    spellOut(current[0], () => { if(fill >= CAPACITY) gameOver(); else nextWord(); });
+  }
+}
+function win(){
+  $('over-title').textContent = "You escaped the caves!";
+  $('over-score').textContent = `Score: ${score}`;
+  $('over-msg').textContent = score >= best && score > 0 ? "New best score! 🏆" : `Best so far: ${best}`;
+  $('over').hidden = false;
+  fireworks(); setTimeout(fireworks, 900); setTimeout(fireworks, 1800);
+  say("You did it!", 1);
+}
+function gameOver(){
+  $('over-title').textContent = "The caves flooded!";
+  $('over-score').textContent = `Score: ${score}`;
+  $('over-msg').textContent = score >= best && score > 0 ? "New best score! 🏆" : `Best so far: ${best}`;
+  $('over').hidden = false;
+}
+function reset(){
+  score = 0; streak = 0; fill = START_FILL; queue = []; asked = 0; current = null; typed = "";
+  $('over').hidden = true; render(); nextWord();
+}
+
+// ---------- keyboard ----------
+const ROWS = ["qwertyuiop","asdfghjkl","zxcvbnm"];
+const keys = $('keys');
+ROWS.forEach((r,ri) => {
+  const row = document.createElement('div'); row.className = 'row';
+  if(ri === 2){ const b = mk("⌫ Delete","wide"); tap(b, back); row.appendChild(b); }
+  for(const ch of r){ const k = mk(ch); tap(k, () => type(ch)); row.appendChild(k); }
+  if(ri === 2){ const g = mk("GO ✓","wide go"); tap(g, submit); row.appendChild(g); }
+  keys.appendChild(row);
+});
+// Register on finger-down so fast taps are never dropped by Safari.
+function tap(el, fn){
+  el.addEventListener('pointerdown', e => {
+    e.preventDefault(); fn();
+    el.classList.add('pressed'); setTimeout(() => el.classList.remove('pressed'), 90);
+  });
+  el.addEventListener('click', e => { if(e.detail === 0) fn(); }); // keyboard Enter/Space on a focused key
+}
+function mk(label, extra=""){ const b = document.createElement('button'); b.className = 'key ' + extra; b.textContent = label; return b; }
+document.addEventListener('keydown', e => {
+  if(!$('start').hidden || !$('over').hidden) return;
+  if(/^[a-zA-Z]$/.test(e.key)) type(e.key.toLowerCase());
+  else if(e.key === "Backspace") back();
+  else if(e.key === "Enter") submit();
+  else if(e.key === " "){ e.preventDefault(); if(current) sayWord(current[0]); }
+});
+
+// ---------- controls ----------
+$('hear').addEventListener('click', () => current && sayWord(current[0]));
+$('sentence').addEventListener('click', () => current && say(current[1], 0.95, $('sentence')));
+function goFull(){
+  const el = document.documentElement;
+  try{
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if(req && !(document.fullscreenElement || document.webkitFullscreenElement)){
+      const p = req.call(el); if(p && p.catch) p.catch(()=>{});
+    }
+  }catch(e){}
+}
+// ---------- word list editor ----------
+function showCount(){
+  $('wcount').textContent = Math.min(ROUND, WORDS.length);
+  $('levels').hidden = !!CUSTOM;
+  document.querySelectorAll('#levels .chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.level === level)));
+}
+document.querySelectorAll('#levels .chip').forEach(c => c.addEventListener('click', () => {
+  level = c.dataset.level;
+  try{ localStorage.setItem("spellquest-level", level); }catch(e){}
+  applyWords(); showCount();
+}));
+applyWords();
+showCount();
+function openWords(){
+  $('pw').value = ""; $('pwerr').textContent = ""; $('wlerr').textContent = "";
+  $('lockstep').hidden = false; $('editstep').hidden = true; $('words').hidden = false;
+  setTimeout(() => $('pw').focus(), 50);
+}
+function closeWords(){ $('words').hidden = true; }
+function unlock(){
+  if($('pw').value.trim().toLowerCase() !== "sq"){ $('pwerr').textContent = "Wrong password."; return; }
+  $('wlist').value = WORDS.map(w => w[0]).join("\n");
+  $('lockstep').hidden = true; $('editstep').hidden = false;
+}
+function saveWords(){
+  const seen = new Set(), list = [];
+  for(const raw of $('wlist').value.split(/[\n,;]+/)){
+    const w = raw.trim().replace(/[^A-Za-zÀ-ÿ'-]/g, "").replace(/['-]/g, "");
+    if(w && !seen.has(norm(w))){ seen.add(norm(w)); list.push(w); }
+  }
+  if(!list.length){ $('wlerr').textContent = "Add at least one word."; return; }
+  CUSTOM = list.map(w => [w]); applyWords();
+  try{ localStorage.setItem("spellquest-words", JSON.stringify(list)); }catch(e){}
+  queue = []; showCount(); closeWords();
+}
+function useDefault(){
+  CUSTOM = null; applyWords();
+  try{ localStorage.removeItem("spellquest-words"); }catch(e){}
+  queue = []; showCount(); closeWords();
+}
+$('mywords').addEventListener('click', openWords);
+$('unlock').addEventListener('click', unlock);
+$('pw').addEventListener('keydown', e => { if(e.key === "Enter") unlock(); });
+$('wsave').addEventListener('click', saveWords);
+$('wdefault').addEventListener('click', useDefault);
+$('wclose1').addEventListener('click', closeWords);
+$('wclose2').addEventListener('click', closeWords);
+
+function unlockSpeech(){ if(!synth) return; loadVoices(); try{ const u = new SpeechSynthesisUtterance(' '); u.volume = 0; synth.speak(u); }catch(e){} }
+$('begin').addEventListener('click', () => { unlockSpeech(); goFull(); $('start').hidden = true; reset(); requestAnimationFrame(buildCave); });
+$('again').addEventListener('click', () => { goFull(); reset(); });
+
+// ---------- fireworks ----------
+const cv = $('fx'), cx = cv.getContext('2d'); let rockets = [], sparks = [], raf = 0;
+const DPR = Math.min(devicePixelRatio || 1, 2);
+function sizeCanvas(){ cv.width = innerWidth * DPR; cv.height = innerHeight * DPR; }
+sizeCanvas(); addEventListener('resize', sizeCanvas);
+const PALETTES = [["#ffcf3f","#fff3b0","#ffa94d"],["#5ad1ff","#b3ecff","#7aa2ff"],["#ff6b9d","#ffc2d6","#ff6b6b"],["#4fd68a","#c6ffd9","#9bff7a"],["#c77dff","#e9d5ff","#ffffff"]];
+function fireworks(){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const n = 6 + Math.floor(Math.random()*3);
+  for(let i=0;i<n;i++){
+    const x = cv.width*(0.15 + Math.random()*0.7);
+    rockets.push({x, y: cv.height, vx:(Math.random()-0.5)*2*DPR, vy:-(13+Math.random()*6)*DPR, delay:i*9, pal:PALETTES[Math.floor(Math.random()*PALETTES.length)], trail:[]});
+  }
+  if(!raf) raf = requestAnimationFrame(tick);
+}
+function burst(r){
+  const count = 90 + Math.floor(Math.random()*50), ring = Math.random() < 0.4;
+  for(let i=0;i<count;i++){
+    const a = (i/count)*Math.PI*2 + Math.random()*0.1, sp = ring ? 7*DPR : (2+Math.random()*7)*DPR;
+    sparks.push({x:r.x, y:r.y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, c:r.pal[i%r.pal.length], life:60+Math.random()*40, max:100, s:(1.5+Math.random()*2)*DPR});
+  }
+}
+function tick(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  cx.globalCompositeOperation = 'lighter';
+  for(const r of rockets){
+    if(r.delay-- > 0) continue;
+    r.x += r.vx; r.y += r.vy; r.vy += 0.18*DPR;
+    r.trail.push([r.x,r.y]); if(r.trail.length > 8) r.trail.shift();
+    cx.strokeStyle = r.pal[0]; cx.lineWidth = 2*DPR; cx.beginPath();
+    r.trail.forEach(([x,y],i) => i ? cx.lineTo(x,y) : cx.moveTo(x,y)); cx.stroke();
+    if(r.vy > -2*DPR){ burst(r); r.dead = true; }
+  }
+  rockets = rockets.filter(r => !r.dead);
+  sparks = sparks.filter(p => p.life-- > 0);
+  for(const p of sparks){
+    p.x += p.vx; p.y += p.vy; p.vx *= 0.96; p.vy = p.vy*0.96 + 0.12*DPR;
+    cx.globalAlpha = Math.max(0, p.life/p.max); cx.fillStyle = p.c;
+    cx.beginPath(); cx.arc(p.x, p.y, p.s, 0, Math.PI*2); cx.fill();
+  }
+  cx.globalAlpha = 1; cx.globalCompositeOperation = 'source-over';
+  raf = (rockets.length || sparks.length) ? requestAnimationFrame(tick) : 0;
+  if(!raf) cx.clearRect(0,0,cv.width,cv.height);
+}
+
+// ---------- cave background ----------
+const BDPR = 1;   // background is soft art; full retina resolution isn't needed
+const bg = $('bg'), bx = bg.getContext('2d'), layer = document.createElement('canvas'), lx = layer.getContext('2d');
+let crystals = [], motes = [], waterLevel = 0;
+function rng(seed){ return () => (seed = (seed*16807) % 2147483647) / 2147483647; }
+function buildCave(){
+  const W = bg.width = layer.width = innerWidth*BDPR, H = bg.height = layer.height = innerHeight*BDPR, r = rng(7);
+  const g = lx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#0b1030'); g.addColorStop(.55,'#141b3a'); g.addColorStop(1,'#0a0e24');
+  lx.fillStyle = g; lx.fillRect(0,0,W,H);
+  // far glow in the cave mouth
+  const glow = lx.createRadialGradient(W*.5,H*.45,0,W*.5,H*.45,Math.max(W,H)*.55);
+  glow.addColorStop(0,'rgba(90,120,255,.16)'); glow.addColorStop(1,'rgba(90,120,255,0)');
+  lx.fillStyle = glow; lx.fillRect(0,0,W,H);
+  // rock layers: back (lighter) to front (darker)
+  const layers = [['#1b2350',.16,.12],['#151c44',.11,.08],['#0e1433',.07,.05]];
+  layers.forEach(([col,top,bot],li) => {
+    lx.fillStyle = col;
+    // stalactites from the ceiling
+    lx.beginPath(); lx.moveTo(0,0);
+    let x = 0;
+    while(x < W){
+      const w = (30 + r()*70)*BDPR*(1+li*.4), h = H*top*(.3 + r()*1.2);
+      lx.lineTo(x, H*top*.25); lx.lineTo(x + w*.5, h); lx.lineTo(x + w, H*top*.25); x += w;
+    }
+    lx.lineTo(W,0); lx.closePath(); lx.fill();
+    // stalagmites from the floor
+    lx.beginPath(); lx.moveTo(0,H);
+    x = 0;
+    while(x < W){
+      const w = (40 + r()*90)*BDPR*(1+li*.4), h = H - H*bot*(.3 + r()*1.3);
+      lx.lineTo(x, H - H*bot*.2); lx.lineTo(x + w*.5, h); lx.lineTo(x + w, H - H*bot*.2); x += w;
+    }
+    lx.lineTo(W,H); lx.closePath(); lx.fill();
+  });
+  // glowing crystal clusters along the walls
+  const hues = ['#5ad1ff','#c77dff','#4fd68a','#ffcf3f'];
+  crystals = [];
+  const avoid = ['.top','#bucket','#hint','.speak','#slots','#verdict','#answer','#keys']
+    .map(q => document.querySelector(q)).filter(Boolean).map(e => e.getBoundingClientRect())
+    .filter(b => b.width && b.height).map(b => ({l:b.left*BDPR, r:b.right*BDPR, t:b.top*BDPR, b:b.bottom*BDPR}));
+  const open = (x, y, rad) => avoid.every(b => x+rad < b.l || x-rad > b.r || y+rad < b.t || y-rad > b.b);
+  for(let tries=0; crystals.length < 12 && tries < 400; tries++){
+    const x = r()*W, y = H*(.06 + r()*.9), sz = (10 + r()*18)*BDPR;
+    if(!open(x, y, sz*1.8)) continue;
+    const c = {x, y, s:sz, c:hues[Math.floor(r()*hues.length)], ph:r()*6.28, n:2 + Math.floor(r()*3)};
+    crystals.push(c);
+  }
+  motes = Array.from({length:40}, () => ({x:r()*W, y:r()*H, v:(.1 + r()*.35)*BDPR, a:r()*6.28, s:(.6 + r()*1.6)*BDPR}));
+}
+function drawCrystal(c, t){
+  const pulse = .55 + .45*Math.sin(t*.0015 + c.ph);
+  if(!c.halo){ c.halo = bx.createRadialGradient(c.x,c.y,0,c.x,c.y,c.s*3.2); c.halo.addColorStop(0, c.c + '55'); c.halo.addColorStop(1, c.c + '00'); }
+  bx.globalAlpha = pulse; bx.fillStyle = c.halo; bx.beginPath(); bx.arc(c.x,c.y,c.s*3.2,0,6.29); bx.fill();
+  bx.globalAlpha = .55 + .35*pulse; bx.fillStyle = c.c;
+  for(let k=0;k<c.n;k++){
+    const dx = (k - (c.n-1)/2)*c.s*.55, h = c.s*(1.4 - Math.abs(dx)/c.s*.6), w = c.s*.32;
+    bx.beginPath(); bx.moveTo(c.x+dx, c.y-h); bx.lineTo(c.x+dx+w, c.y); bx.lineTo(c.x+dx, c.y+c.s*.25); bx.lineTo(c.x+dx-w, c.y); bx.closePath(); bx.fill();
+  }
+  bx.globalAlpha = 1;
+}
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let lastBg = -1e9;
+function bgFrame(t=0){
+  requestAnimationFrame(bgFrame);
+  if(document.hidden || t - lastBg < 42) return;   // ~24 fps is plenty for drifting dust
+  lastBg = t;
+  const W = bg.width, H = bg.height;
+  bx.drawImage(layer,0,0);
+  crystals.forEach(c => drawCrystal(c, still ? 0 : t));
+  bx.fillStyle = 'rgba(200,220,255,.5)';
+  for(const m of motes){
+    if(!still){ m.y -= m.v; m.x += Math.sin(t*.001 + m.a)*.3*BDPR; if(m.y < 0){ m.y = H; m.x = Math.random()*W; } }
+    bx.globalAlpha = .25 + .25*Math.sin(t*.002 + m.a); bx.beginPath(); bx.arc(m.x,m.y,m.s,0,6.29); bx.fill();
+  }
+  bx.globalAlpha = 1;
+  // cave water rises with the bucket
+  const target = H*.14*Math.min(fill, CAPACITY)/CAPACITY;
+  waterLevel += (target - waterLevel)*.05;
+  if(waterLevel > 1){
+    const y = H - waterLevel, wg = bx.createLinearGradient(0,y,0,H);
+    wg.addColorStop(0, fill >= CAPACITY-1 ? 'rgba(255,107,107,.35)' : 'rgba(90,209,255,.28)'); wg.addColorStop(1,'rgba(20,60,120,.45)');
+    bx.fillStyle = wg; bx.beginPath(); bx.moveTo(0,H);
+    for(let x=0;x<=W;x+=12*BDPR) bx.lineTo(x, y + Math.sin(x*.012/BDPR + t*.002)*4*BDPR);
+    bx.lineTo(W,H); bx.closePath(); bx.fill();
+  }
+}
+buildCave(); addEventListener('resize', buildCave); requestAnimationFrame(bgFrame);
+
+// ---------- auto-update: reload when GitHub serves a newer build ----------
+const BUILD = document.querySelector('meta[name="sq-build"]').content;
+$('ver').textContent = "· version " + document.querySelector('meta[name="sq-version"]').content;
+const idle = () => !$('start').hidden || !$('over').hidden;   // never reload mid-game
+let pending = null;
+async function checkUpdate(){
+  try{
+    const r = await fetch(`./?check=${Date.now()}`, {cache:'no-store'});
+    const m = (await r.text()).match(/name="sq-build" content="([^"]+)"/);
+    if(m && m[1] > BUILD) pending = m[1];
+  }catch(e){}
+  if(pending && idle()) location.replace(`./?v=${pending}`);
+}
+checkUpdate();
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') checkUpdate(); });
+setInterval(checkUpdate, 60000);
+
+render();
+</script>
+</body>
+</html>

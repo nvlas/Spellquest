@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b2353"/><stop offset="1" stop-color="#0a0e24"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="256" cy="270" r="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5ad1ff" stop-opacity=".55"/>
+      <stop offset=".45" stop-color="#7a6bff" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#5ad1ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2aa6e0"/><stop offset="1" stop-color="#7fe0ff"/></linearGradient>
+    <linearGradient id="cR" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#d9f6ff"/><stop offset="1" stop-color="#5ad1ff"/></linearGradient>
+    <linearGradient id="pL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8a4fd8"/><stop offset="1" stop-color="#c77dff"/></linearGradient>
+    <linearGradient id="pR" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ead8ff"/><stop offset="1" stop-color="#b06cf2"/></linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- ceiling stalactites -->
+  <path fill="#151c44" d="M0 0H512V40L470 52 452 112 430 46 392 58 370 132 348 50 300 44 282 96 262 40 220 48 196 118 176 46 132 54 112 104 92 44 52 50 34 126 18 46 0 52Z"/>
+  <!-- floor -->
+  <path fill="#0e1433" d="M0 512V452L30 440 50 392 72 446 120 452 140 410 162 456 350 456 372 404 394 452 440 446 462 384 484 444 512 448V512Z"/>
+  <circle cx="256" cy="270" r="200" fill="url(#halo)"/>
+  <!-- side crystals -->
+  <g filter="url(#glow)">
+    <path d="M150 420 L132 330 L150 300 L168 330 Z" fill="url(#pL)"/>
+    <path d="M150 300 L168 330 L150 420 Z" fill="url(#pR)" opacity=".85"/>
+    <path d="M118 424 L104 368 L118 348 L132 368 Z" fill="url(#pL)" opacity=".9"/>
+    <path d="M362 424 L346 346 L362 318 L378 346 Z" fill="url(#pL)"/>
+    <path d="M362 318 L378 346 L362 424 Z" fill="url(#pR)" opacity=".85"/>
+    <path d="M396 426 L384 380 L396 362 L408 380 Z" fill="url(#cL)" opacity=".9"/>
+    <!-- central crystal -->
+    <path d="M256 440 L196 240 L256 120 L316 240 Z" fill="url(#cL)"/>
+    <path d="M256 120 L316 240 L256 440 Z" fill="url(#cR)" opacity=".9"/>
+    <path d="M256 120 L232 240 L256 440 L196 240 Z" fill="#ffffff" opacity=".12"/>
+  </g>
+  <!-- sparkles -->
+  <g fill="#ffffff">
+    <path d="M300 150 l5 14 14 5 -14 5 -5 14 -5 -14 -14 -5 14 -5Z"/>
+    <path d="M196 196 l3 9 9 3 -9 3 -3 9 -3 -9 -9 -3 9 -3Z" opacity=".8"/>
+    <path d="M338 280 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3Z" opacity=".7"/>
+  </g>
+</svg>
